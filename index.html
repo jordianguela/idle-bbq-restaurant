@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Idle BBQ Restaurant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="game">
+    <h1>🔥 Idle BBQ Restaurant</h1>
+    <p class="money">Diners: <span id="money">0</span> €</p>
+    <p class="rate"><span id="rate">0</span> €/s · <span id="perserve">1</span> € per client</p>
+
+    <button id="serve" class="serve-btn">Serveix un client (+<span id="serveval">1</span> €)</button>
+
+    <section class="shop">
+      <button id="buy-meat" class="buy-btn">
+        Millor carn — <span id="meat-cost">15</span> € <small>(nivell <span id="meat-level">0</span>)</small>
+      </button>
+      <button id="buy-cook" class="buy-btn">
+        Contracta cuiner — <span id="cook-cost">50</span> € <small>(<span id="cook-count">0</span> cuiners)</small>
+      </button>
+    </section>
+
+    <div id="offline" class="offline hidden"></div>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

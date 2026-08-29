@@ -1,0 +1,24 @@
+:root { color-scheme: light dark; }
+body {
+  font-family: system-ui, sans-serif;
+  display: flex; justify-content: center; padding: 2rem;
+  background: #1b1512; color: #f4ece4;
+}
+.game { width: min(460px, 100%); text-align: center; }
+h1 { font-size: 1.6rem; }
+.money { font-size: 1.4rem; font-weight: 700; }
+.rate { opacity: 0.8; font-size: 0.95rem; }
+button { cursor: pointer; border: none; border-radius: 12px; font: inherit; }
+.serve-btn {
+  width: 100%; padding: 1.2rem; margin: 1rem 0; font-size: 1.1rem; font-weight: 700;
+  background: #d8542b; color: white;
+}
+.serve-btn:active { transform: scale(0.98); }
+.shop { display: grid; gap: 0.6rem; }
+.buy-btn { padding: 0.9rem; background: #3a2c22; color: #f4ece4; text-align: left; }
+.buy-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.offline {
+  margin-top: 1.2rem; padding: 0.9rem; border-radius: 12px;
+  background: #2c3a22; color: #eaf4e4;
+}
+.hidden { display: none; }
