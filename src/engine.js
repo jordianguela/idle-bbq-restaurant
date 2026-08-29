@@ -32,3 +32,7 @@ export function buyCook(state) {
   if (state.money < cost) return state;
   return { ...state, money: state.money - cost, cookCount: state.cookCount + 1 };
 }
+
+export function tick(state, dtSeconds) {
+  return { ...state, money: state.money + incomePerSec(state) * dtSeconds };
+}

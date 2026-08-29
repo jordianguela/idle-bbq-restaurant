@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { moneyPerServe, incomePerSec, serve, meatCost, cookCost, buyMeat, buyCook } from '../src/engine.js';
+import { moneyPerServe, incomePerSec, serve, meatCost, cookCost, buyMeat, buyCook, tick } from '../src/engine.js';
 
 const base = { money: 0, meatLevel: 0, cookCount: 0, lastSeen: 0 };
 
@@ -41,4 +41,14 @@ test('buyCook compra un cuiner', () => {
   const s = buyCook({ ...base, money: 60 });
   assert.equal(s.cookCount, 1);
   assert.equal(s.money, 10); // 60 - 50
+});
+
+test('tick acumula ingressos passius segons els cuiners i el temps', () => {
+  const s = tick({ ...base, cookCount: 2, money: 0 }, 3); // 2/sec * 3s = 6
+  assert.equal(s.money, 6);
+});
+
+test('tick sense cuiners no dona diners', () => {
+  const s = tick({ ...base, money: 5 }, 10);
+  assert.equal(s.money, 5);
 });
