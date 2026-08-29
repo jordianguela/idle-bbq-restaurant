@@ -1,4 +1,4 @@
-import { DISHES, DISH_IDS } from './definitions.js';
+import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
 import { waitingCount, platesCount, ticketInKitchen } from './engine.js';
 
 const $ = id => document.getElementById(id);
@@ -25,7 +25,12 @@ function renderTable(state) {
   const ticket = state.table.ticketLocation === 'table'
     ? `<div class="ticket" data-action="ticket">🎫 Porta el tíquet a la cuina</div>`
     : '';
-  el.innerHTML = diners + ticket;
+  let eatingBar = '';
+  if (eating) {
+    const pct = Math.max(0, Math.min(100, ((CONFIG.eatTime - state.table.eatingTimer) / CONFIG.eatTime) * 100));
+    eatingBar = `<div class="eating">😋 Menjant…<div class="bar"><span style="width:${pct}%"></span></div></div>`;
+  }
+  el.innerHTML = `<div class="diners">${diners}</div>` + eatingBar + ticket;
 }
 
 function renderKitchen(state) {
@@ -65,7 +70,10 @@ function renderKitchen(state) {
 }
 
 export function wire({ onSendTicket, onStartCooking, onDeliver }) {
-  document.querySelector('.floor').addEventListener('click', (e) => {
+  // Fem servir pointerdown (no click): actua a l'instant de prémer, així el
+  // redibuix periòdic no ens pot "menjar" el clic recreant els botons enmig.
+  document.querySelector('.floor').addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // només botó principal / toc
     const t = e.target.closest('[data-action]');
     if (!t) return;
     if (t.dataset.action === 'ticket') onSendTicket();
