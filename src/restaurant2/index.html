@@ -3,27 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Idle BBQ — Nivell 1</title>
+  <title>Idle BBQ Restaurant</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>🍔 Nivell 1 · Street Food</h1>
+    <h1>🔥 Idle BBQ</h1>
     <p class="money">Diners: <span id="money">0</span> €</p>
   </header>
-  <div class="goalbar">
-    <div class="goal-label">Objectiu nivell 2: <span id="goal-cur">0</span> / <span id="goal-max">0</span> €</div>
-    <div class="bar big"><span id="goal-fill"></span></div>
-  </div>
-  <div id="banner" class="banner hidden"></div>
   <div id="notice" class="notice hidden"></div>
   <div class="shop">
+    <button id="buy-table" class="shop-btn" data-action="buy-table"></button>
     <button id="buy-bbq" class="shop-btn" data-action="buy-bbq"></button>
+    <button id="hire-waiter" class="shop-btn staff" data-action="hire-waiter"></button>
+    <button id="hire-cook" class="shop-btn staff" data-action="hire-cook"></button>
+    <button id="up-waiter" class="shop-btn skill" data-action="up-waiter"></button>
+    <button id="up-cook" class="shop-btn skill" data-action="up-cook"></button>
   </div>
+  <div id="staff" class="staff-summary"></div>
   <main class="floor">
     <section class="hall">
-      <h2>Clients (cua)</h2>
-      <div id="queue" class="queue"></div>
+      <h2>Sala</h2>
+      <div id="tables" class="tables"></div>
     </section>
     <section class="kitchen">
       <h2>Cuina</h2>
@@ -32,6 +33,6 @@
       <div id="plates" class="plates"></div>
     </section>
   </main>
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>

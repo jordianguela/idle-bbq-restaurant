@@ -1,5 +1,5 @@
 import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
-import { upgradeCost } from './economy.js';
+import { upgradeCost } from '../economy.js';
 
 // --- Aleatorietat (rng injectat: funció que retorna [0, 1)) ---
 

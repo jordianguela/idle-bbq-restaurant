@@ -4,42 +4,42 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color
 .topbar { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1.2rem; background: #2a201a; }
 .topbar h1 { font-size: 1.2rem; margin: 0; }
 .money { font-weight: 700; font-size: 1.1rem; margin: 0; }
-.muted { opacity: 0.55; }
-
-.goalbar { padding: 0.7rem 1.2rem 0; }
-.goal-label { font-size: 0.9rem; margin-bottom: 0.3rem; opacity: 0.9; }
-.bar { height: 10px; border-radius: 6px; background: #4a3a2e; overflow: hidden; }
-.bar > span { display: block; height: 100%; background: #d8542b; }
-.bar.big { height: 16px; border-radius: 8px; }
-.bar.big > span { background: linear-gradient(90deg, #d8542b, #d8b02b); transition: width 0.2s linear; }
-
-.banner { margin: 0.7rem 1.2rem 0; padding: 0.7rem 0.9rem; border-radius: 10px; background: #2f5a3a; font-weight: 600; }
-.notice { margin: 0.6rem 1.2rem 0; padding: 0.6rem 0.9rem; border-radius: 10px; background: #3b3320; }
+.notice { margin: 0.6rem 1.2rem; padding: 0.6rem 0.9rem; border-radius: 10px; background: #3b3320; }
 .hidden { display: none; }
+.muted { opacity: 0.55; }
 
 .shop { display: flex; gap: 0.6rem; padding: 0.8rem 1.2rem 0; flex-wrap: wrap; }
 .shop-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.9rem; background: #2f6f3a; color: #eaf4e4; font-weight: 600; }
+.shop-btn small { font-weight: 400; opacity: 0.7; }
+.shop-btn.staff { background: #2f5a6f; }
+.shop-btn.skill { background: #5a4a6f; }
 .shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.staff-summary { padding: 0.5rem 1.2rem 0; font-size: 0.9rem; opacity: 0.9; }
 
 .floor { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1.2rem; }
 .hall, .kitchen { background: #241b16; border-radius: 14px; padding: 1rem; min-height: 260px; }
 h2 { margin-top: 0; font-size: 1rem; opacity: 0.85; }
 
-.queue { display: grid; gap: 0.6rem; }
+.tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; }
 .table-card { background: #2b211a; border-radius: 12px; padding: 0.6rem; border: 2px solid transparent; }
+.table-card.empty { opacity: 0.5; font-style: italic; text-align: center; padding: 1.2rem 0.6rem; }
 .table-card.target { border-color: #d8b02b; cursor: pointer; background: #33301f; }
 .th { font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.3rem; }
 .diners { display: flex; flex-wrap: wrap; }
-.diner { display: inline-flex; flex-direction: column; align-items: center; margin: 0.2rem; padding: 0.4rem 0.5rem; border-radius: 10px; background: #33271f; min-width: 56px; }
-.diner .em { font-size: 1.4rem; }
+.diner { display: inline-flex; flex-direction: column; align-items: center; margin: 0.2rem; padding: 0.4rem 0.5rem; border-radius: 10px; background: #33271f; min-width: 52px; }
+.diner .em { font-size: 1.3rem; }
 .diner .st { font-size: 0.68rem; opacity: 0.8; }
 .diner.served { background: #2c3a22; }
+.eating { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.9; }
+.ticket { margin-top: 0.5rem; padding: 0.5rem; border-radius: 10px; background: #d8b02b; color: #241b16; font-weight: 700; cursor: pointer; text-align: center; font-size: 0.9rem; }
 
 .order { padding: 0.6rem; border-radius: 10px; background: #33271f; margin-bottom: 0.8rem; }
 .bbqs { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }
 .bbq-slot { padding: 0.6rem; border-radius: 10px; background: #33271f; }
+.bar { height: 10px; border-radius: 6px; background: #4a3a2e; margin-top: 0.4rem; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: #d8542b; }
 
-button.dish-btn, button.plate-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.2rem; padding: 0.35rem 0.6rem; margin: 0.1rem; }
+button.dish-btn, button.plate-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.1rem; padding: 0.35rem 0.6rem; margin: 0.1rem; }
 .dish-btn { background: #3a2c22; color: #f4ece4; }
 .dish-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .plate-btn { background: #d8542b; color: white; }

@@ -1,8 +1,9 @@
-// Restaurant actiu: Nivell 1 — Street Food.
-// El codi de taules/personal (restaurants 2 i 3) es conserva a ./restaurant2/.
-import { tick, startCooking, deliverPlate, buyBbq } from './restaurant1/engine.js';
-import { load, save } from './restaurant1/save.js';
-import { render, wire, notify } from './restaurant1/ui.js';
+import {
+  tick, sendTicket, startCooking, deliverPlate,
+  buyTable, buyBbq, hireWaiter, hireCook, upgradeWaiterSkill, upgradeCookSkill,
+} from './engine.js';
+import { load, save } from './save.js';
+import { render, wire, notify } from './ui.js';
 
 let state;
 
@@ -13,12 +14,18 @@ function boot() {
   render(state);
 
   wire({
+    onSendTicket: (i) => set(sendTicket(state, i)),
     onStartCooking: (bbqIndex, dish) => set(startCooking(state, bbqIndex, dish)),
-    onDeliver: (groupIndex, dish) => set(deliverPlate(state, groupIndex, dish)),
+    onDeliver: (tableIndex, dish) => set(deliverPlate(state, tableIndex, dish)),
+    onBuyTable: () => set(buyTable(state)),
     onBuyBbq: () => set(buyBbq(state)),
+    onHireWaiter: () => set(hireWaiter(state)),
+    onHireCook: () => set(hireCook(state)),
+    onUpWaiter: () => set(upgradeWaiterSkill(state)),
+    onUpCook: () => set(upgradeCookSkill(state)),
   });
 
-  // bucle de temps: arribades i cocció
+  // bucle de temps: avança el joc (inclou l'automatització) i mostra avisos
   let last = Date.now();
   setInterval(() => {
     const now = Date.now();
