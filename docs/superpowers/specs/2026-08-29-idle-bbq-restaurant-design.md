@@ -20,6 +20,10 @@ El segell propi (què el fa un joc de BBQ i no un restaurant genèric) es basa e
   primera (qualitat, fresc, exclusivitat). Una cadena de subministrament.
 - **Ambient i sala** — decoració, música, terrassa, fum... millorar l'ambient fa que els
   clients paguin més i vinguin més sovint.
+- **Personal i les seves habilitats** — no només contractes personal, sinó que en **millores
+  les habilitats**: la tècnica de cuina dels **cuiners**, i les capacitats dels **cambrers**,
+  **sommelier**, **caixer**, etc. Cada rol té el seu efecte (rapidesa de servei, qualitat,
+  propines, ingressos per venda de vins, eficiència de cobrament...).
 
 A llarg termini el joc barreja **clicker + automatització** amb **gestió/tycoon** (col·locar
 graelles, taules i personal en un espai 2D).
@@ -129,8 +133,14 @@ notòria:
 1. **Carns i talls** — arbre de progressió de carns/talls més ampli.
 2. **Productors locals** — cadena de subministrament d'ingredients i qualitat.
 3. **Ambient i sala** — multiplicadors per decoració/experiència.
-4. **Tycoon 2D** — col·locació de graelles, taules i personal en un espai 2D.
-5. **(Opcional) Minijoc del punt de la carn.**
+4. **Personal i habilitats** — diferents rols (cuiner, cambrer, sommelier, caixer...) que es
+   contracten i **pugen d'habilitat**; cada rol amb el seu efecte propi.
+5. **Tycoon 2D** — col·locació de graelles, taules i personal en un espai 2D.
+6. **(Opcional) Minijoc del punt de la carn.**
+
+> Nota: al **prototip** ja hi ha "contractar personal" com a font d'ingressos passius. El
+> sistema ric de **rols i pujar-los d'habilitat** és l'evolució natural d'aquesta peça i
+> s'hi construeix a sobre.
 
 ---
 
@@ -142,6 +152,7 @@ notòria:
 | Objectiu | Divertir-nos i aprendre; iterar ràpid sobre un prototip petit |
 | Estil de joc | Clicker + automatització barrejat amb gestió/tycoon (visió llarg termini) |
 | Segell BBQ | Carns i talls, productors locals, ambient/sala |
+| Personal i habilitats | Rols (cuiner, cambrer, sommelier, caixer...) que es contracten i pugen d'habilitat; cada rol amb efecte propi |
 | Punt de la carn | Aparcat per al futur |
 | Guanys offline | Sí |
 | Ordre de construcció | Opció A: bucle idle primer, després pilars un a un |
