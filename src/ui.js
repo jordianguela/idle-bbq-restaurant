@@ -1,84 +1,114 @@
 import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
-import { waitingCount, platesCount, ticketInKitchen } from './engine.js';
+import {
+  anyTicketInKitchen, tableWantsDish, cookNeeded, platesCount,
+  tableCost, bbqCost,
+} from './engine.js';
 
 const $ = id => document.getElementById(id);
 
+// Estat intern de la UI: quin plat llest hem "agafat" per entregar.
+let selectedDish = null;
+let lastState = null;
+
 export function render(state) {
+  lastState = state;
+  // si el plat seleccionat ja no existeix, deixa'l anar
+  if (selectedDish && platesCount(state, selectedDish) === 0) selectedDish = null;
+
   $('money').textContent = Math.floor(state.money);
-  renderTable(state);
+  renderShop(state);
+  renderTables(state);
   renderKitchen(state);
 }
 
-function renderTable(state) {
-  const el = $('table');
-  if (!state.table) {
-    el.className = 'table empty';
-    el.textContent = 'La taula és buida…';
-    return;
+function renderShop(state) {
+  const tc = tableCost(state);
+  const bc = bbqCost(state);
+  const bt = $('buy-table');
+  const bb = $('buy-bbq');
+  bt.innerHTML = `➕ Compra taula (${tc} €) <small>${state.tables.length} ara</small>`;
+  bb.innerHTML = `➕ Compra BBQ (${bc} €) <small>${state.bbqs.length} ara</small>`;
+  bt.disabled = state.money < tc;
+  bb.disabled = state.money < bc;
+}
+
+function renderTables(state) {
+  const el = $('tables');
+  el.innerHTML = state.tables.map((t, i) => renderTableCard(t, i, state)).join('');
+}
+
+function renderTableCard(t, i, state) {
+  if (t === null) {
+    return `<div class="table-card empty">Taula ${i + 1}<br><span class="muted">buida…</span></div>`;
   }
-  el.className = 'table';
-  const eating = state.table.eatingTimer !== null;
-  const diners = state.table.diners.map(d => {
+  const eating = t.eatingTimer !== null;
+  const diners = t.diners.map(d => {
     const st = d.status === 'served' ? (eating ? 'menjant' : 'servit') : 'esperant';
     return `<div class="diner ${d.status}"><span class="em">${DISHES[d.dish].emoji}</span><span class="st">${st}</span></div>`;
   }).join('');
-  const ticket = state.table.ticketLocation === 'table'
-    ? `<div class="ticket" data-action="ticket">🎫 Porta el tíquet a la cuina</div>`
-    : '';
-  let eatingBar = '';
+
+  let extra = '';
   if (eating) {
-    const pct = Math.max(0, Math.min(100, ((CONFIG.eatTime - state.table.eatingTimer) / CONFIG.eatTime) * 100));
-    eatingBar = `<div class="eating">😋 Menjant…<div class="bar"><span style="width:${pct}%"></span></div></div>`;
+    const pct = Math.max(0, Math.min(100, ((CONFIG.eatTime - t.eatingTimer) / CONFIG.eatTime) * 100));
+    extra = `<div class="eating">😋 Menjant…<div class="bar"><span style="width:${pct}%"></span></div></div>`;
+  } else if (t.ticketLocation === 'table') {
+    extra = `<div class="ticket" data-action="ticket" data-table="${i}">🎫 Envia a la cuina</div>`;
   }
-  el.innerHTML = `<div class="diners">${diners}</div>` + eatingBar + ticket;
+
+  // taula com a destí d'entrega si tenim un plat agafat que hi encaixa
+  const isTarget = selectedDish && tableWantsDish(t, selectedDish);
+  const targetAttr = isTarget ? ` data-action="deliver-table" data-table="${i}"` : '';
+  const cls = `table-card${isTarget ? ' target' : ''}`;
+  return `<div class="${cls}"${targetAttr}><div class="th">Taula ${i + 1}</div><div class="diners">${diners}</div>${extra}</div>`;
 }
 
 function renderKitchen(state) {
-  const order = $('order');
-  if (ticketInKitchen(state)) {
-    const parts = DISH_IDS
-      .map(id => ({ id, n: waitingCount(state, id) }))
-      .filter(x => x.n > 0)
-      .map(x => `${x.n}×${DISHES[x.id].emoji}`);
-    order.textContent = parts.length ? `Comanda: ${parts.join('  ')}` : 'Comanda servida';
-  } else {
-    order.textContent = 'Sense comanda';
-  }
+  // comanda: què falta cuinar en total
+  const parts = DISH_IDS
+    .map(id => ({ id, n: cookNeeded(state, id) }))
+    .filter(x => x.n > 0)
+    .map(x => `${x.n}×${DISHES[x.id].emoji}`);
+  $('order').textContent = parts.length ? `A cuinar: ${parts.join('  ')}` : 'Res per cuinar';
 
-  const bbq = $('bbq');
-  if (state.bbq) {
-    const dish = DISHES[state.bbq.dish];
-    const pct = Math.max(0, Math.min(100, ((dish.cookTime - state.bbq.remaining) / dish.cookTime) * 100));
-    bbq.innerHTML = `<div class="slot">Cuinant ${dish.emoji} ${dish.name}<div class="bar"><span style="width:${pct}%"></span></div></div>`;
-  } else {
-    const canCook = ticketInKitchen(state);
-    const buttons = DISH_IDS.map(id => {
-      const d = DISHES[id];
-      return `<button class="dish-btn" data-action="cook" data-dish="${id}" ${canCook ? '' : 'disabled'}>${d.emoji} ${d.name}</button>`;
-    }).join('');
-    bbq.innerHTML = `<div class="slot">BBQ lliure${canCook ? ' — tria plat:' : ''}<div>${buttons}</div></div>`;
-  }
+  // BBQs
+  const canCook = anyTicketInKitchen(state);
+  $('bbqs').innerHTML = state.bbqs.map((b, i) => {
+    if (b) {
+      const dish = DISHES[b.dish];
+      const pct = Math.max(0, Math.min(100, ((dish.cookTime - b.remaining) / dish.cookTime) * 100));
+      return `<div class="bbq-slot">BBQ ${i + 1}: ${dish.emoji} ${dish.name}<div class="bar"><span style="width:${pct}%"></span></div></div>`;
+    }
+    const buttons = DISH_IDS.map(id =>
+      `<button class="dish-btn" data-action="cook" data-bbq="${i}" data-dish="${id}" ${canCook ? '' : 'disabled'}>${DISHES[id].emoji}</button>`
+    ).join('');
+    return `<div class="bbq-slot">BBQ ${i + 1}: <span class="muted">lliure</span> ${buttons}</div>`;
+  }).join('');
 
-  const plates = $('plates');
+  // plats llestos (clica per agafar-ne un)
   const btns = [];
   for (const id of DISH_IDS) {
-    for (let i = 0; i < platesCount(state, id); i++) {
-      btns.push(`<button class="plate-btn" data-action="deliver" data-dish="${id}">${DISHES[id].emoji} entrega</button>`);
+    for (let k = 0; k < platesCount(state, id); k++) {
+      const sel = selectedDish === id && k === 0 ? ' selected' : '';
+      btns.push(`<button class="plate-btn${sel}" data-action="pick-plate" data-dish="${id}">${DISHES[id].emoji}</button>`);
     }
   }
-  plates.innerHTML = btns.length ? `Plats llestos:<br>${btns.join('')}` : '';
+  const hint = selectedDish ? `<div class="muted">Plat agafat: ${DISHES[selectedDish].emoji} — clica una taula per servir</div>` : '';
+  $('plates').innerHTML = (btns.length ? `Plats llestos: ${btns.join(' ')}` : '') + hint;
 }
 
-export function wire({ onSendTicket, onStartCooking, onDeliver }) {
-  // Fem servir pointerdown (no click): actua a l'instant de prémer, així el
-  // redibuix periòdic no ens pot "menjar" el clic recreant els botons enmig.
-  document.querySelector('.floor').addEventListener('pointerdown', (e) => {
+export function wire(handlers) {
+  const { onSendTicket, onStartCooking, onDeliver, onBuyTable, onBuyBbq } = handlers;
+  document.body.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return; // només botó principal / toc
     const t = e.target.closest('[data-action]');
     if (!t) return;
-    if (t.dataset.action === 'ticket') onSendTicket();
-    else if (t.dataset.action === 'cook') onStartCooking(t.dataset.dish);
-    else if (t.dataset.action === 'deliver') onDeliver(t.dataset.dish);
+    const a = t.dataset.action;
+    if (a === 'ticket') onSendTicket(Number(t.dataset.table));
+    else if (a === 'cook') onStartCooking(Number(t.dataset.bbq), t.dataset.dish);
+    else if (a === 'pick-plate') { selectedDish = selectedDish === t.dataset.dish ? null : t.dataset.dish; render(lastState); }
+    else if (a === 'deliver-table') { onDeliver(Number(t.dataset.table), selectedDish); selectedDish = null; }
+    else if (a === 'buy-table') onBuyTable();
+    else if (a === 'buy-bbq') onBuyBbq();
   });
 }
 

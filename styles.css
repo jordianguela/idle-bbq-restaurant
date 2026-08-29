@@ -6,22 +6,38 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color
 .money { font-weight: 700; font-size: 1.1rem; margin: 0; }
 .notice { margin: 0.6rem 1.2rem; padding: 0.6rem 0.9rem; border-radius: 10px; background: #3b3320; }
 .hidden { display: none; }
+.muted { opacity: 0.55; }
+
+.shop { display: flex; gap: 0.6rem; padding: 0.8rem 1.2rem 0; flex-wrap: wrap; }
+.shop-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.9rem; background: #2f6f3a; color: #eaf4e4; font-weight: 600; }
+.shop-btn small { font-weight: 400; opacity: 0.7; }
+.shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .floor { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1.2rem; }
 .hall, .kitchen { background: #241b16; border-radius: 14px; padding: 1rem; min-height: 260px; }
 h2 { margin-top: 0; font-size: 1rem; opacity: 0.85; }
-.table.empty { opacity: 0.5; font-style: italic; padding: 2rem 0; text-align: center; }
-.diner { display: inline-flex; flex-direction: column; align-items: center; margin: 0.3rem; padding: 0.5rem 0.7rem; border-radius: 10px; background: #33271f; min-width: 64px; }
-.diner .em { font-size: 1.4rem; }
-.diner .st { font-size: 0.7rem; opacity: 0.8; }
+
+.tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; }
+.table-card { background: #2b211a; border-radius: 12px; padding: 0.6rem; border: 2px solid transparent; }
+.table-card.empty { opacity: 0.5; font-style: italic; text-align: center; padding: 1.2rem 0.6rem; }
+.table-card.target { border-color: #d8b02b; cursor: pointer; background: #33301f; }
+.th { font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.3rem; }
+.diners { display: flex; flex-wrap: wrap; }
+.diner { display: inline-flex; flex-direction: column; align-items: center; margin: 0.2rem; padding: 0.4rem 0.5rem; border-radius: 10px; background: #33271f; min-width: 52px; }
+.diner .em { font-size: 1.3rem; }
+.diner .st { font-size: 0.68rem; opacity: 0.8; }
 .diner.served { background: #2c3a22; }
-.eating { margin-top: 0.8rem; font-size: 0.9rem; opacity: 0.9; }
-.ticket { margin-top: 0.8rem; padding: 0.7rem; border-radius: 10px; background: #d8b02b; color: #241b16; font-weight: 700; cursor: pointer; text-align: center; }
+.eating { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.9; }
+.ticket { margin-top: 0.5rem; padding: 0.5rem; border-radius: 10px; background: #d8b02b; color: #241b16; font-weight: 700; cursor: pointer; text-align: center; font-size: 0.9rem; }
+
 .order { padding: 0.6rem; border-radius: 10px; background: #33271f; margin-bottom: 0.8rem; }
-.bbq { margin-bottom: 0.8rem; }
-.bbq button, .plates button { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.8rem; margin: 0.2rem; }
-.bbq .slot { padding: 0.7rem; border-radius: 10px; background: #33271f; }
+.bbqs { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }
+.bbq-slot { padding: 0.6rem; border-radius: 10px; background: #33271f; }
 .bar { height: 10px; border-radius: 6px; background: #4a3a2e; margin-top: 0.4rem; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: #d8542b; }
+
+button.dish-btn, button.plate-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.1rem; padding: 0.35rem 0.6rem; margin: 0.1rem; }
 .dish-btn { background: #3a2c22; color: #f4ece4; }
-.dish-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.dish-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .plate-btn { background: #d8542b; color: white; }
+.plate-btn.selected { outline: 3px solid #d8b02b; }

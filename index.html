@@ -12,15 +12,19 @@
     <p class="money">Diners: <span id="money">0</span> €</p>
   </header>
   <div id="notice" class="notice hidden"></div>
+  <div class="shop">
+    <button id="buy-table" class="shop-btn" data-action="buy-table"></button>
+    <button id="buy-bbq" class="shop-btn" data-action="buy-bbq"></button>
+  </div>
   <main class="floor">
     <section class="hall">
       <h2>Sala</h2>
-      <div id="table" class="table empty">La taula és buida…</div>
+      <div id="tables" class="tables"></div>
     </section>
     <section class="kitchen">
       <h2>Cuina</h2>
-      <div id="order" class="order">Sense comanda</div>
-      <div id="bbq" class="bbq"></div>
+      <div id="order" class="order">Res per cuinar</div>
+      <div id="bbqs" class="bbqs"></div>
       <div id="plates" class="plates"></div>
     </section>
   </main>

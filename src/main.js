@@ -1,4 +1,4 @@
-import { tick, sendTicket, startCooking, deliverPlate } from './engine.js';
+import { tick, sendTicket, startCooking, deliverPlate, buyTable, buyBbq } from './engine.js';
 import { load, save } from './save.js';
 import { render, wire, notify } from './ui.js';
 
@@ -11,9 +11,11 @@ function boot() {
   render(state);
 
   wire({
-    onSendTicket: () => set(sendTicket(state)),
-    onStartCooking: (dish) => set(startCooking(state, dish)),
-    onDeliver: (dish) => set(deliverPlate(state, dish)),
+    onSendTicket: (i) => set(sendTicket(state, i)),
+    onStartCooking: (bbqIndex, dish) => set(startCooking(state, bbqIndex, dish)),
+    onDeliver: (tableIndex, dish) => set(deliverPlate(state, tableIndex, dish)),
+    onBuyTable: () => set(buyTable(state)),
+    onBuyBbq: () => set(buyBbq(state)),
   });
 
   // bucle de temps: avança el joc i mostra avisos
