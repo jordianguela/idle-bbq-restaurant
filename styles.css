@@ -11,7 +11,10 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color
 .shop { display: flex; gap: 0.6rem; padding: 0.8rem 1.2rem 0; flex-wrap: wrap; }
 .shop-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.9rem; background: #2f6f3a; color: #eaf4e4; font-weight: 600; }
 .shop-btn small { font-weight: 400; opacity: 0.7; }
+.shop-btn.staff { background: #2f5a6f; }
+.shop-btn.skill { background: #5a4a6f; }
 .shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.staff-summary { padding: 0.5rem 1.2rem 0; font-size: 0.9rem; opacity: 0.9; }
 
 .floor { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1.2rem; }
 .hall, .kitchen { background: #241b16; border-radius: 14px; padding: 1rem; min-height: 260px; }

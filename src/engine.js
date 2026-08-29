@@ -26,6 +26,16 @@ export function spawnParty(rng) {
   return { diners, ticketLocation: 'table', eatingTimer: null };
 }
 
+// --- Habilitats (velocitat) ---
+
+export function waiterActionTime(state) {
+  return CONFIG.waiter.actionTime * CONFIG.waiterSkill.decay ** state.waiterSkill;
+}
+
+export function effectiveCookTime(state, dish) {
+  return DISHES[dish].cookTime * CONFIG.cookSkill.decay ** state.cookSkill;
+}
+
 // --- Càlculs derivats ---
 
 export function anyTicketInKitchen(state) {
@@ -40,7 +50,6 @@ export function tableWantsDish(table, dish) {
   return !!table && table.diners.some(d => d.status === 'waiting' && d.dish === dish);
 }
 
-// comensals que esperen 'dish' a taules amb el tíquet ja a la cuina
 export function kitchenWaitingCount(state, dish) {
   let n = 0;
   for (const t of state.tables) {
@@ -59,22 +68,29 @@ function bbqsCooking(state, dish) {
   return state.bbqs.filter(b => b && b.dish === dish).length;
 }
 
-// plats de 'dish' que encara falta cuinar (guia per a la comanda)
 export function cookNeeded(state, dish) {
   return Math.max(0, kitchenWaitingCount(state, dish) - platesCount(state, dish) - bbqsCooking(state, dish));
 }
 
+function mostNeededDish(state) {
+  let best = null, bestN = 0;
+  for (const id of DISH_IDS) {
+    const n = cookNeeded(state, id);
+    if (n > bestN) { bestN = n; best = id; }
+  }
+  return best;
+}
+
 // --- Costos de la botiga ---
 
-export function tableCost(state) {
-  return upgradeCost(CONFIG.table.baseCost, CONFIG.table.growth, state.tables.length - 1);
-}
+export function tableCost(state) { return upgradeCost(CONFIG.table.baseCost, CONFIG.table.growth, state.tables.length - 1); }
+export function bbqCost(state) { return upgradeCost(CONFIG.bbq.baseCost, CONFIG.bbq.growth, state.bbqs.length - 1); }
+export function waiterCost(state) { return upgradeCost(CONFIG.waiter.baseCost, CONFIG.waiter.growth, state.waiters.length); }
+export function cookCost(state) { return upgradeCost(CONFIG.cook.baseCost, CONFIG.cook.growth, state.cooks.length); }
+export function waiterSkillCost(state) { return upgradeCost(CONFIG.waiterSkill.baseCost, CONFIG.waiterSkill.growth, state.waiterSkill); }
+export function cookSkillCost(state) { return upgradeCost(CONFIG.cookSkill.baseCost, CONFIG.cookSkill.growth, state.cookSkill); }
 
-export function bbqCost(state) {
-  return upgradeCost(CONFIG.bbq.baseCost, CONFIG.bbq.growth, state.bbqs.length - 1);
-}
-
-// --- Accions (pures: retornen estat nou, no muten l'entrada) ---
+// --- Accions manuals (pures: retornen estat nou, no muten l'entrada) ---
 
 export function sendTicket(state, tableIndex) {
   const t = state.tables[tableIndex];
@@ -86,7 +102,8 @@ export function sendTicket(state, tableIndex) {
 export function startCooking(state, bbqIndex, dish) {
   if (state.bbqs[bbqIndex] !== null || state.bbqs[bbqIndex] === undefined) return state;
   if (!anyTicketInKitchen(state)) return state;
-  const bbqs = state.bbqs.map((b, i) => (i === bbqIndex ? { dish, remaining: DISHES[dish].cookTime } : b));
+  const total = effectiveCookTime(state, dish);
+  const bbqs = state.bbqs.map((b, i) => (i === bbqIndex ? { dish, remaining: total, total } : b));
   return { ...state, bbqs };
 }
 
@@ -104,6 +121,8 @@ export function deliverPlate(state, tableIndex, dish) {
   return { ...state, tables, readyPlates };
 }
 
+// --- Botiga: comprar/contractar/millorar ---
+
 export function buyTable(state) {
   const cost = tableCost(state);
   if (state.money < cost) return state;
@@ -116,6 +135,81 @@ export function buyBbq(state) {
   return { ...state, money: state.money - cost, bbqs: [...state.bbqs, null] };
 }
 
+export function hireWaiter(state) {
+  const cost = waiterCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, waiters: [...state.waiters, { cooldown: 0 }] };
+}
+
+export function hireCook(state) {
+  const cost = cookCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, cooks: [...state.cooks, { cooldown: 0 }] };
+}
+
+export function upgradeWaiterSkill(state) {
+  const cost = waiterSkillCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, waiterSkill: state.waiterSkill + 1 };
+}
+
+export function upgradeCookSkill(state) {
+  const cost = cookSkillCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, cookSkill: state.cookSkill + 1 };
+}
+
+// --- Automatització (opera sobre l'objecte mutable `next` dins de tick) ---
+
+function tryWaiterDeliver(next) {
+  for (let p = 0; p < next.readyPlates.length; p++) {
+    const dish = next.readyPlates[p];
+    const ti = next.tables.findIndex(t => t && t.diners.some(d => d.status === 'waiting' && d.dish === dish));
+    if (ti !== -1) {
+      const t = next.tables[ti];
+      const di = t.diners.findIndex(d => d.status === 'waiting' && d.dish === dish);
+      const diners = t.diners.map((d, k) => (k === di ? { ...d, status: 'served' } : d));
+      next.tables[ti] = { ...t, diners };
+      next.readyPlates = next.readyPlates.filter((_, k) => k !== p);
+      return true;
+    }
+  }
+  return false;
+}
+
+function tryWaiterSendTicket(next) {
+  const ti = next.tables.findIndex(t => t && t.ticketLocation === 'table');
+  if (ti === -1) return false;
+  next.tables[ti] = { ...next.tables[ti], ticketLocation: 'kitchen' };
+  return true;
+}
+
+function waitersAct(next, dt) {
+  const actionTime = waiterActionTime(next);
+  for (let i = 0; i < next.waiters.length; i++) {
+    const w = next.waiters[i];
+    if (w.cooldown > 0) {
+      next.waiters[i] = { cooldown: w.cooldown - dt };
+    } else if (tryWaiterDeliver(next) || tryWaiterSendTicket(next)) {
+      next.waiters[i] = { cooldown: actionTime };
+    }
+  }
+}
+
+function cooksAct(next, dt) {
+  for (let i = 0; i < next.cooks.length; i++) {
+    const c = next.cooks[i];
+    if (c.cooldown > 0) { next.cooks[i] = { cooldown: c.cooldown - dt }; continue; }
+    const bi = next.bbqs.findIndex(b => b === null);
+    if (bi === -1) continue;               // cap BBQ lliure
+    const dish = mostNeededDish(next);
+    if (!dish) continue;                    // res per cuinar
+    const total = effectiveCookTime(next, dish);
+    next.bbqs[bi] = { dish, remaining: total, total };
+    next.cooks[i] = { cooldown: total };
+  }
+}
+
 // tick avança el temps del joc. Retorna sempre { state, events }.
 export function tick(state, dt, rng) {
   const events = [];
@@ -124,6 +218,8 @@ export function tick(state, dt, rng) {
     tables: [...state.tables],
     bbqs: [...state.bbqs],
     readyPlates: [...state.readyPlates],
+    waiters: [...state.waiters],
+    cooks: [...state.cooks],
   };
 
   // arribada: omple una taula lliure quan el timer arriba a 0
@@ -136,6 +232,9 @@ export function tick(state, dt, rng) {
     }
     next.spawnTimer = CONFIG.spawnInterval;
   }
+
+  // cambrers: envien tíquets i entreguen plats
+  waitersAct(next, dt);
 
   // cocció: cada BBQ avança independentment
   for (let i = 0; i < next.bbqs.length; i++) {
@@ -151,6 +250,9 @@ export function tick(state, dt, rng) {
       next.bbqs[i] = { ...b, remaining };
     }
   }
+
+  // cuiners: comencen a coure el plat que més falta en una BBQ lliure
+  cooksAct(next, dt);
 
   // menjar (només amb tot el grup servit) i pagament: cada taula
   for (let i = 0; i < next.tables.length; i++) {

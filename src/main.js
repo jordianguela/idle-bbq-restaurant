@@ -1,4 +1,7 @@
-import { tick, sendTicket, startCooking, deliverPlate, buyTable, buyBbq } from './engine.js';
+import {
+  tick, sendTicket, startCooking, deliverPlate,
+  buyTable, buyBbq, hireWaiter, hireCook, upgradeWaiterSkill, upgradeCookSkill,
+} from './engine.js';
 import { load, save } from './save.js';
 import { render, wire, notify } from './ui.js';
 
@@ -16,9 +19,13 @@ function boot() {
     onDeliver: (tableIndex, dish) => set(deliverPlate(state, tableIndex, dish)),
     onBuyTable: () => set(buyTable(state)),
     onBuyBbq: () => set(buyBbq(state)),
+    onHireWaiter: () => set(hireWaiter(state)),
+    onHireCook: () => set(hireCook(state)),
+    onUpWaiter: () => set(upgradeWaiterSkill(state)),
+    onUpCook: () => set(upgradeCookSkill(state)),
   });
 
-  // bucle de temps: avança el joc i mostra avisos
+  // bucle de temps: avança el joc (inclou l'automatització) i mostra avisos
   let last = Date.now();
   setInterval(() => {
     const now = Date.now();
