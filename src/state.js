@@ -1,3 +1,12 @@
+import { CONFIG } from './definitions.js';
+
 export function createInitialState(now) {
-  return { money: 0, meatLevel: 0, cookCount: 0, lastSeen: now };
+  return {
+    money: 0,
+    spawnTimer: CONFIG.spawnInterval,
+    table: null,
+    bbq: null,
+    readyPlates: [],
+    lastSeen: now,
+  };
 }

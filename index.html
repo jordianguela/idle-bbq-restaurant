@@ -7,23 +7,22 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="game">
-    <h1>🔥 Idle BBQ Restaurant</h1>
+  <header class="topbar">
+    <h1>🔥 Idle BBQ</h1>
     <p class="money">Diners: <span id="money">0</span> €</p>
-    <p class="rate"><span id="rate">0</span> €/s · <span id="perserve">1</span> € per client</p>
-
-    <button id="serve" class="serve-btn">Serveix un client (+<span id="serveval">1</span> €)</button>
-
-    <section class="shop">
-      <button id="buy-meat" class="buy-btn">
-        Millor carn — <span id="meat-cost">15</span> € <small>(nivell <span id="meat-level">0</span>)</small>
-      </button>
-      <button id="buy-cook" class="buy-btn">
-        Contracta cuiner — <span id="cook-cost">50</span> € <small>(<span id="cook-count">0</span> cuiners)</small>
-      </button>
+  </header>
+  <div id="notice" class="notice hidden"></div>
+  <main class="floor">
+    <section class="hall">
+      <h2>Sala</h2>
+      <div id="table" class="table empty">La taula és buida…</div>
     </section>
-
-    <div id="offline" class="offline hidden"></div>
+    <section class="kitchen">
+      <h2>Cuina</h2>
+      <div id="order" class="order">Sense comanda</div>
+      <div id="bbq" class="bbq"></div>
+      <div id="plates" class="plates"></div>
+    </section>
   </main>
   <script type="module" src="src/main.js"></script>
 </body>

@@ -1,20 +1,17 @@
 import { createInitialState } from './state.js';
-import { incomePerSec } from './engine.js';
 
 const KEY = 'idle-bbq-save';
 
 export function save(state, storage, now) {
-  storage.setItem(KEY, JSON.stringify({ ...state, lastSeen: now }));
+  storage.setItem(KEY, JSON.stringify({ money: state.money, lastSeen: now }));
 }
 
 export function load(storage, now) {
+  const state = createInitialState(now);
   const raw = storage.getItem(KEY);
-  if (!raw) {
-    return { state: createInitialState(now), offlineEarnings: 0 };
+  if (raw) {
+    const saved = JSON.parse(raw);
+    state.money = saved.money ?? 0;
   }
-  const saved = JSON.parse(raw);
-  const elapsed = Math.max(0, (now - saved.lastSeen) / 1000);
-  const offlineEarnings = Math.floor(incomePerSec(saved) * elapsed);
-  const state = { ...saved, money: saved.money + offlineEarnings, lastSeen: now };
-  return { state, offlineEarnings };
+  return state;
 }
