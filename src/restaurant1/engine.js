@@ -21,7 +21,9 @@ export function spawnGroup(rng) {
   const size = pickPartySize(rng);
   const diners = [];
   for (let i = 0; i < size; i++) {
-    diners.push({ dish: pickDish(rng), status: 'waiting' });
+    // `look` és la llavor d'aspecte del client (quin sprite li toca). La lògica
+    // no en sap res: qui la interpreta és l'escena.
+    diners.push({ dish: pickDish(rng), status: 'waiting', look: rng() });
   }
   return { diners };
 }

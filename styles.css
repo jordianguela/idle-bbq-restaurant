@@ -21,19 +21,15 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color
 .shop-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.9rem; background: #2f6f3a; color: #eaf4e4; font-weight: 600; }
 .shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.floor { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1.2rem; }
-.hall, .kitchen { background: #241b16; border-radius: 14px; padding: 1rem; min-height: 260px; }
+.floor { display: grid; gap: 1rem; padding: 1.2rem; max-width: 1100px; margin: 0 auto; }
+.stage, .kitchen { background: #241b16; border-radius: 14px; padding: 0.7rem; }
+.kitchen { padding: 1rem; }
 h2 { margin-top: 0; font-size: 1rem; opacity: 0.85; }
 
-.queue { display: grid; gap: 0.6rem; }
-.table-card { background: #2b211a; border-radius: 12px; padding: 0.6rem; border: 2px solid transparent; }
-.table-card.target { border-color: #d8b02b; cursor: pointer; background: #33301f; }
-.th { font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.3rem; }
-.diners { display: flex; flex-wrap: wrap; }
-.diner { display: inline-flex; flex-direction: column; align-items: center; margin: 0.2rem; padding: 0.4rem 0.5rem; border-radius: 10px; background: #33271f; min-width: 56px; }
-.diner .em { font-size: 1.4rem; }
-.diner .st { font-size: 0.68rem; opacity: 0.8; }
-.diner.served { background: #2c3a22; }
+#scene { display: block; width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #120d0a; }
+body.picking #scene { cursor: pointer; }
+
+.credits { padding: 0.4rem 1.2rem 1.4rem; font-size: 0.72rem; opacity: 0.45; text-align: center; }
 
 .order { padding: 0.6rem; border-radius: 10px; background: #33271f; margin-bottom: 0.8rem; }
 .bbqs { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }

@@ -3,17 +3,22 @@ import { CONFIG } from './definitions.js';
 
 const KEY = 'idle-bbq-lvl1';
 
+// El navegador pot tenir el localStorage bloquejat (finestra privada, permisos):
+// si passa, es juga igual, només que sense desar.
 export function save(state, storage, now) {
-  storage.setItem(KEY, JSON.stringify({
-    money: state.money,
-    bbqs: state.bbqs.length,
-    lastSeen: now,
-  }));
+  try {
+    storage.setItem(KEY, JSON.stringify({
+      money: state.money,
+      bbqs: state.bbqs.length,
+      lastSeen: now,
+    }));
+  } catch { /* partida no desada */ }
 }
 
 export function load(storage, now) {
   const state = createInitialState(now);
-  const raw = storage.getItem(KEY);
+  let raw = null;
+  try { raw = storage.getItem(KEY); } catch { /* sense partida desada */ }
   if (raw) {
     const saved = JSON.parse(raw);
     state.money = saved.money ?? 0;

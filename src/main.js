@@ -3,6 +3,7 @@
 import { tick, startCooking, deliverPlate, buyBbq } from './restaurant1/engine.js';
 import { load, save } from './restaurant1/save.js';
 import { render, wire, notify } from './restaurant1/ui.js';
+import { initScene } from './restaurant1/scene.js';
 
 let state;
 
@@ -10,6 +11,7 @@ function set(next) { state = next; render(state); }
 
 function boot() {
   state = load(localStorage, Date.now());
+  initScene(document.getElementById('scene'));
   render(state);
 
   wire({

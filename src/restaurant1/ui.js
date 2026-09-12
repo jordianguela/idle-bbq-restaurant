@@ -1,7 +1,8 @@
 import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
 import {
-  cookNeeded, platesCount, groupWantsDish, bbqCost, canBuyBbq, goalReached,
+  cookNeeded, platesCount, bbqCost, canBuyBbq, goalReached,
 } from './engine.js';
+import { renderScene, groupAt } from './scene.js';
 
 const $ = id => document.getElementById(id);
 
@@ -16,7 +17,8 @@ export function render(state) {
   $('money').textContent = Math.floor(state.money);
   renderGoal(state);
   renderShop(state);
-  renderQueue(state);
+  renderScene(state, selectedDish);           // els clients i la cuina es veuen a l'escena
+  document.body.classList.toggle('picking', selectedDish !== null);
   renderKitchen(state);
 }
 
@@ -47,27 +49,6 @@ function renderShop(state) {
   el.disabled = state.money < cost;
 }
 
-function renderQueue(state) {
-  const el = $('queue');
-  if (state.queue.length === 0) {
-    el.innerHTML = '<div class="muted">Sense clients… (arribaran de seguida)</div>';
-    return;
-  }
-  el.innerHTML = state.queue.map((g, i) => renderGroupCard(g, i)).join('');
-}
-
-function renderGroupCard(g, i) {
-  const diners = g.diners.map(d => {
-    const st = d.status === 'served' ? 'servit' : 'esperant';
-    return `<div class="diner ${d.status}"><span class="em">${DISHES[d.dish].emoji}</span><span class="st">${st}</span></div>`;
-  }).join('');
-
-  const isTarget = selectedDish && groupWantsDish(g, selectedDish);
-  const targetAttr = isTarget ? ` data-action="deliver-group" data-group="${i}"` : '';
-  const cls = `table-card${isTarget ? ' target' : ''}`;
-  return `<div class="${cls}"${targetAttr}><div class="th">Grup ${i + 1}</div><div class="diners">${diners}</div></div>`;
-}
-
 function renderKitchen(state) {
   const parts = DISH_IDS
     .map(id => ({ id, n: cookNeeded(state, id) }))
@@ -94,7 +75,7 @@ function renderKitchen(state) {
       btns.push(`<button class="plate-btn${sel}" data-action="pick-plate" data-dish="${id}">${DISHES[id].emoji}</button>`);
     }
   }
-  const hint = selectedDish ? `<div class="muted">Plat agafat: ${DISHES[selectedDish].emoji} — clica un grup per servir</div>` : '';
+  const hint = selectedDish ? `<div class="muted">Plat agafat: ${DISHES[selectedDish].emoji} — clica els clients que el volen</div>` : '';
   $('plates').innerHTML = (btns.length ? `Plats llestos: ${btns.join(' ')}` : '') + hint;
 }
 
@@ -102,6 +83,17 @@ export function wire(handlers) {
   const { onStartCooking, onDeliver, onBuyBbq } = handlers;
   document.body.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return; // només botó principal / toc
+
+    // clic sobre un grup de clients dibuixat a l'escena
+    if (e.target.id === 'scene') {
+      const gi = groupAt(e.clientX, e.clientY);
+      if (gi !== null && selectedDish) {
+        onDeliver(gi, selectedDish);
+        selectedDish = null;
+      }
+      return;
+    }
+
     const t = e.target.closest('[data-action]');
     if (!t) return;
     const a = t.dataset.action;
