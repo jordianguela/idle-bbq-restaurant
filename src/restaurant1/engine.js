@@ -26,7 +26,8 @@ export function spawnGroup(rng, id) {
     diners.push({ dish: pickDish(rng), status: 'waiting', look: rng() });
   }
   // leaveTimer: null mentre esperen; segons que els queden un cop tenen el menjar.
-  return { id, diners, leaveTimer: null };
+  // waitTime: segons des que han arribat, per calcular la propina.
+  return { id, diners, leaveTimer: null, waitTime: 0 };
 }
 
 // --- Càlculs derivats ---
@@ -80,6 +81,14 @@ export function buyBbq(state) {
   return { ...state, money: state.money - cost, bbqs: [...state.bbqs, null] };
 }
 
+// Propina per rapidesa: servir de seguida paga fins al triple, i va baixant
+// fins al preu normal si els fas esperar.
+export function tipFactor(waitTime) {
+  const { fast, slow, max } = CONFIG.tip;
+  const late = Math.max(0, Math.min(1, (waitTime - fast) / (slow - fast)));
+  return max - (max - 1) * late;
+}
+
 // Els plats bruts ocupen el local: cada tants, un client menys hi cap.
 export function queueCapacity(state) {
   const lost = Math.floor(state.dirtyPlates.length / CONFIG.dirtyPerSlot);
@@ -127,14 +136,35 @@ const STAFF_WORK = {
   },
 };
 
+// Personal més ràpid: tots fan la feina més sovint.
+export function staffSpeedFactor(state) {
+  return 1 + CONFIG.staffSpeed.step * (state.staffSpeedLevel ?? 0);
+}
+
+export function staffSpeedCost(state) {
+  return upgradeCost(CONFIG.staffSpeed.baseCost, CONFIG.staffSpeed.growth, state.staffSpeedLevel ?? 0);
+}
+
+export function canBuyStaffSpeed(state) {
+  return (state.staffSpeedLevel ?? 0) < CONFIG.staffSpeed.maxLevel;
+}
+
+export function buyStaffSpeed(state) {
+  if (!canBuyStaffSpeed(state)) return state;
+  const cost = staffSpeedCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, staffSpeedLevel: (state.staffSpeedLevel ?? 0) + 1 };
+}
+
 function runStaff(state, dt) {
   let next = state;
   const timers = { ...state.staffTimers };
+  const speed = staffSpeedFactor(state);
 
   for (const role of STAFF_IDS) {
     const hired = next.staff[role];
     if (!hired) continue;
-    timers[role] -= dt * hired;            // més personal, més feina feta
+    timers[role] -= dt * hired * speed;    // més personal i més ràpids, més feina feta
     while (timers[role] < 0) {
       timers[role] += STAFF[role].interval;
       const done = STAFF_WORK[role](next);
@@ -190,8 +220,10 @@ export function deliverPlate(state, queueIndex, dish) {
   // quan el grup té tot el menjar paga a l'instant, però encara es queda una
   // estona a la botiga (CONFIG.leaveTime) abans de marxar per la porta
   if (groupAllServed(newGroup)) {
-    const amount = newGroup.diners.reduce((s, d) => s + DISHES[d.dish].price, 0);
-    const eating = { ...newGroup, leaveTimer: CONFIG.leaveTime };
+    const price = newGroup.diners.reduce((s, d) => s + DISHES[d.dish].price, 0);
+    const factor = tipFactor(newGroup.waitTime);
+    const amount = Math.round(price * factor);
+    const eating = { ...newGroup, leaveTimer: CONFIG.leaveTime, paid: amount, factor };
     const queue = state.queue.map((gg, i) => (i === queueIndex ? eating : gg));
     return { ...state, queue, readyPlates, money: state.money + amount };
   }
@@ -219,7 +251,9 @@ export function tick(state, dt, rng) {
   // els plats bruts al taulell
   next.dirtyPlates = [...state.dirtyPlates];
   next.queue = next.queue
-    .map(g => (g.leaveTimer === null ? g : { ...g, leaveTimer: g.leaveTimer - dt }))
+    .map(g => (g.leaveTimer === null
+      ? { ...g, waitTime: g.waitTime + dt }        // encara esperen: corre el crono
+      : { ...g, leaveTimer: g.leaveTimer - dt }))
     .filter(g => {
       if (g.leaveTimer === null || g.leaveTimer > 0) return true;
       for (const d of g.diners) {

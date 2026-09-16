@@ -33,8 +33,14 @@ als nivells 2 i 3.
 - **Cuina:** de 1 a **3 BBQ** (comences amb 1, en compres més fins a 3; cost 150 € ×2). Tot
   **manual**: cliques la BBQ a l'escena, tries el plat en un globus (equivocar-te perd temps)
   i surt la barra de progrés.
-- **Millores:** **foc més fort**, 4 nivells de +25% de velocitat de cocció (cost 120 € ×1,8).
-  S'aplica a totes les graelles alhora.
+- **Propina per rapidesa:** cada grup porta un crono des que arriba. Servir-lo de seguida
+  (fins a 7 s) paga el **triple**; a partir d'aquí baixa fins al preu normal als 20 s, i mai
+  menys. A l'escena es veu com una barra verda→vermella sobre el grup, i quan paguen surt
+  què han deixat (`+36 € ×3,0`).
+- **Millores:** **foc més fort** (4 nivells de +25% de cocció, 120 € ×1,8) i **personal més
+  ràpid** (4 nivells de +25% de feina, 200 € ×1,8).
+- **Personal:** rentaplats (150 €), cuiner (300 €) i cambrer (300 €), fins a 2 de cada, cost
+  ×1,8 per contractació. Cadascú fa la seva feina sol cada pocs segons.
 - **Servir:** arrossegues el plat llest del taulell fins a un grup que el vulgui (els grups que
   el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
   menjar **paga a l'instant**, es queda **3 s** menjant i llavors se'n va caminant per la
@@ -48,14 +54,14 @@ als nivells 2 i 3.
 
 Estat: `{ level, money, spawnTimer, nextGroupId, queue:[{id,diners:[{dish,status,look}],leaveTimer}], bbqs:[null|{dish,remaining,total}], readyPlates:[], dirtyPlates:[], lastSeen }`.
 Accions: `startCooking(bbqIndex, dish)`, `deliverPlate(groupIndex, dish)` (cobra i arrenca el
-`leaveTimer` si queda tot servit), `washPlate(index)`, `buyBbq()` (topat a `maxBbqs`), `buyFire()` (topat a `fire.maxLevel`),
+`leaveTimer` si queda tot servit), `washPlate(index)`, `buyBbq()`, `buyFire()`, `buyStaffSpeed()`, `hire(role)` (tots topats),
 `tick(dt, rng)` (arribades, cocció, i marxa dels grups que han acabat deixant els plats bruts).
 L'`id` i el `look` són identitat, no lògica: deixen que l'escena sàpiga qui és qui per animar-ho.
 `goalReached(state)` = `money >= CONFIG.goal`.
 
 ## Persistència
 
-Clau `idle-bbq-lvl1`: es desen diners, nombre de BBQ (topat a 3) i nivell de foc. El progrés antic del
+Clau `idle-bbq-lvl1`: es desen diners, nombre de BBQ, nivells de foc i de personal, i qui s'ha contractat. El progrés antic del
 prototip queda al marge (clau diferent).
 
 ## Fora d'abast (properes)

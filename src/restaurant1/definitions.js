@@ -22,6 +22,11 @@ export const CONFIG = {
   bbq: { baseCost: 150, growth: 2 },
   // Foc més fort: cada nivell cou un 25% més ràpid (×2 al nivell 4)
   fire: { baseCost: 120, growth: 1.8, maxLevel: 4, step: 0.25 },
+  // Personal més ràpid: cada nivell fan la feina un 25% més sovint
+  staffSpeed: { baseCost: 200, growth: 1.8, maxLevel: 4, step: 0.25 },
+  // Propina: servir de pressa paga fins al triple. El compte arrenca quan
+  // arriben (els primers segons ja se'ls menja el camí fins a la barra).
+  tip: { fast: 7, slow: 20, max: 3 },
 };
 
 // Personal: cadascú fa una feina sol, cada `interval` segons. Contractar-ne
@@ -29,7 +34,7 @@ export const CONFIG = {
 export const STAFF_IDS = ['washer', 'cook', 'waiter'];
 
 export const STAFF = {
-  washer: { name: 'Rentaplats', icon: '🧽',   job: 'renta els plats bruts',       baseCost: 250, growth: 2.2, max: 2, interval: 2.5 },
-  cook:   { name: 'Cuiner',     icon: '👨‍🍳', job: 'posa plats a coure sol',      baseCost: 450, growth: 2.2, max: 2, interval: 2 },
-  waiter: { name: 'Cambrer',    icon: '🛎️',  job: 'serveix els plats als clients', baseCost: 700, growth: 2.2, max: 2, interval: 2.5 },
+  washer: { name: 'Rentaplats', icon: '🧽',   job: 'renta els plats bruts',         baseCost: 150, growth: 1.8, max: 2, interval: 2.5 },
+  cook:   { name: 'Cuiner',     icon: '👨‍🍳', job: 'posa plats a coure sol',        baseCost: 300, growth: 1.8, max: 2, interval: 2 },
+  waiter: { name: 'Cambrer',    icon: '🛎️',  job: 'serveix els plats als clients', baseCost: 300, growth: 1.8, max: 2, interval: 2.5 },
 };

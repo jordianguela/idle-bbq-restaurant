@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createInitialState } from '../src/restaurant1/state.js';
 import {
   tick, deliverPlate, washPlate, startCooking, buyFire, fireCost, canBuyFire,
-  queueCapacity, hire, hireCost, canHire,
+  queueCapacity, hire, hireCost, canHire, tipFactor,
 } from '../src/restaurant1/engine.js';
 import { DISHES, STAFF } from '../src/restaurant1/definitions.js';
 import { CONFIG } from '../src/restaurant1/definitions.js';
@@ -132,4 +132,36 @@ test('contractar: cobra, puja i té topall', () => {
   for (let i = 0; i < STAFF.cook.max + 2; i++) full = hire(full, 'cook');
   assert.equal(full.staff.cook, STAFF.cook.max);
   assert.equal(canHire(full, 'cook'), false);
+});
+
+test('servir de pressa paga més', () => {
+  assert.equal(tipFactor(0), CONFIG.tip.max, 'acabats d\'arribar: el triple');
+  assert.equal(tipFactor(CONFIG.tip.fast), CONFIG.tip.max, 'dins del marge: encara el triple');
+  assert.equal(tipFactor(CONFIG.tip.slow), 1, 'tard: preu normal');
+  assert.equal(tipFactor(CONFIG.tip.slow + 100), 1, 'molt tard: mai menys del preu');
+  const mig = tipFactor((CONFIG.tip.fast + CONFIG.tip.slow) / 2);
+  assert.ok(mig > 1 && mig < CONFIG.tip.max, 'entremig, va baixant');
+});
+
+test('el grup paga segons el que ha esperat', () => {
+  const s = stateWithGroup();
+  const dish = s.queue[0].diners[0].dish;
+  const price = DISHES[dish].price;
+
+  const rapid = deliverPlate({ ...s, readyPlates: [dish] }, 0, dish);
+  assert.equal(rapid.money, Math.round(price * CONFIG.tip.max));
+
+  const lent = { ...s, queue: [{ ...s.queue[0], waitTime: CONFIG.tip.slow }], readyPlates: [dish] };
+  assert.equal(deliverPlate(lent, 0, dish).money, price);
+});
+
+test('el personal més ràpid treballa més sovint', () => {
+  const base = {
+    ...createInitialState(0),
+    dirtyPlates: ['a', 'b', 'c'],
+    staff: { washer: 1, cook: 0, waiter: 0 },
+  };
+  const lent = tick(base, STAFF.washer.interval, rng).state;
+  const rapid = tick({ ...base, staffSpeedLevel: CONFIG.staffSpeed.maxLevel }, STAFF.washer.interval, rng).state;
+  assert.ok(rapid.dirtyPlates.length < lent.dirtyPlates.length, 'amb la millora en renta més');
 });

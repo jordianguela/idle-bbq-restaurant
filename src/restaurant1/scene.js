@@ -6,7 +6,7 @@ import {
   CHAR_W, CHAR_H, CHAR_COUNT, FRAME_IDLE, DIR, charSrc,
 } from './sprites.js';
 import { DISHES, DISH_IDS, CONFIG, STAFF_IDS } from './definitions.js';
-import { queueCapacity } from './engine.js';
+import { queueCapacity, tipFactor } from './engine.js';
 
 export const SCENE_W = 352;
 export const SCENE_H = 240;
@@ -458,7 +458,43 @@ function drawQueue(state, drag, t) {
     );
     if (wanted) highlightGroup(group, w, t, overGroup(drag, group, w));
     drawGroupAt(w, group.diners, gi, t);
+    if (!w.moving) drawGroupTimer(group, w);
   });
+}
+
+// El crono de la propina mentre esperen, i el que han pagat quan ja mengen.
+function drawGroupTimer(group, w) {
+  const y = w.y - CHAR_H - 26;
+
+  if (group.leaveTimer !== null) {
+    if (!group.paid) return;
+    const text = `+${group.paid} € ×${group.factor.toFixed(1)}`;
+    ctx.save();
+    ctx.font = 'bold 8px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(20, 12, 8, 0.85)';
+    ctx.strokeText(text, w.x, y + 3);
+    ctx.fillStyle = group.factor > 1.05 ? '#ffd45e' : '#f4ece4';
+    ctx.fillText(text, w.x, y + 3);
+    ctx.restore();
+    return;
+  }
+
+  const factor = tipFactor(group.waitTime);
+  const left = (factor - 1) / (CONFIG.tip.max - 1);      // 1 = acabat d'arribar
+  const width = 30;
+  ctx.save();
+  ctx.fillStyle = 'rgba(20, 12, 8, 0.7)';
+  ctx.beginPath();
+  ctx.roundRect(w.x - width / 2, y, width, 5, 2);
+  ctx.fill();
+  ctx.fillStyle = left > 0.6 ? '#57c26a' : left > 0.25 ? '#e8b62b' : '#d8542b';
+  ctx.beginPath();
+  ctx.roundRect(w.x - width / 2 + 1, y + 1, Math.max(0, (width - 2) * left), 3, 1.5);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawGroupAt(w, diners, gi, t) {

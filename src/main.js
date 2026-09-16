@@ -1,6 +1,6 @@
 // Restaurant actiu: Nivell 1 — Street Food.
 // El codi de taules/personal (restaurants 2 i 3) es conserva a ./restaurant2/.
-import { tick, startCooking, deliverPlate, washPlate, buyBbq, buyFire, hire } from './restaurant1/engine.js';
+import { tick, startCooking, deliverPlate, washPlate, buyBbq, buyFire, buyStaffSpeed, hire } from './restaurant1/engine.js';
 import { load, save } from './restaurant1/save.js';
 import { render, wire } from './restaurant1/ui.js';
 import { initScene } from './restaurant1/scene.js';
@@ -20,6 +20,7 @@ function boot() {
     onWash: (index) => set(washPlate(state, index)),
     onBuyBbq: () => set(buyBbq(state)),
     onBuyFire: () => set(buyFire(state)),
+    onBuyStaffSpeed: () => set(buyStaffSpeed(state)),
     onHire: (role) => set(hire(state, role)),
   });
 

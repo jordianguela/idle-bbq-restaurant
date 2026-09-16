@@ -11,6 +11,7 @@ export function save(state, storage, now) {
       money: state.money,
       bbqs: state.bbqs.length,
       fireLevel: state.fireLevel,
+      staffSpeedLevel: state.staffSpeedLevel,
       staff: state.staff,
       lastSeen: now,
     }));
@@ -27,6 +28,7 @@ export function load(storage, now) {
     const nb = Math.min(CONFIG.maxBbqs, Math.max(1, saved.bbqs ?? 1));
     state.bbqs = Array(nb).fill(null);
     state.fireLevel = Math.min(CONFIG.fire.maxLevel, Math.max(0, saved.fireLevel ?? 0));
+    state.staffSpeedLevel = Math.min(CONFIG.staffSpeed.maxLevel, Math.max(0, saved.staffSpeedLevel ?? 0));
     for (const role of STAFF_IDS) {
       state.staff[role] = Math.min(STAFF[role].max, Math.max(0, saved.staff?.[role] ?? 0));
     }

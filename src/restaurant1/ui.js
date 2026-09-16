@@ -1,6 +1,7 @@
 import { CONFIG, STAFF, STAFF_IDS } from './definitions.js';
 import {
   bbqCost, canBuyBbq, fireCost, canBuyFire, fireFactor,
+  staffSpeedCost, canBuyStaffSpeed, staffSpeedFactor,
   hireCost, canHire, goalReached,
 } from './engine.js';
 import { renderScene, hotspotAt, dropTargetAt, toScene } from './scene.js';
@@ -51,6 +52,16 @@ function renderShop(state) {
       cost: canBuyFire(state) ? fireCost(state) : null,
       money: state.money,
     }),
+    offer({
+      action: 'buy-staff-speed',
+      icon: '🏃',
+      name: 'Personal més ràpid',
+      note: canBuyStaffSpeed(state)
+        ? `feina ×${staffSpeedFactor(state).toFixed(2)} → ×${(staffSpeedFactor(state) + CONFIG.staffSpeed.step).toFixed(2)}`
+        : `feina ×${staffSpeedFactor(state).toFixed(2)}`,
+      cost: canBuyStaffSpeed(state) ? staffSpeedCost(state) : null,
+      money: state.money,
+    }),
     ...STAFF_IDS.map(role => offer({
       action: 'hire',
       role,
@@ -81,6 +92,7 @@ export function wire(handlers) {
     if (!el) return;
     if (el.dataset.action === 'buy-bbq') handlers.onBuyBbq();
     else if (el.dataset.action === 'buy-fire') handlers.onBuyFire();
+    else if (el.dataset.action === 'buy-staff-speed') handlers.onBuyStaffSpeed();
     else if (el.dataset.action === 'hire') handlers.onHire(el.dataset.role);
   });
   wireScene($('scene'), handlers);

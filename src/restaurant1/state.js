@@ -8,7 +8,8 @@ export function createInitialState(now) {
     queue: [],        // grups a la botiga; cada grup: { id, diners, leaveTimer }
     nextGroupId: 1,   // identitat de cada grup (l'escena hi enganxa l'animació)
     bbqs: [null],     // cada posició: null (lliure) o { dish, remaining, total }
-    fireLevel: 0,     // millora de velocitat de cocció
+    fireLevel: 0,       // millora de velocitat de cocció
+    staffSpeedLevel: 0, // millora de velocitat del personal
     staff: { washer: 0, cook: 0, waiter: 0 },   // personal contractat
     staffTimers: { washer: 0, cook: 0, waiter: 0 },
     readyPlates: [],  // plats cuinats pendents de donar
