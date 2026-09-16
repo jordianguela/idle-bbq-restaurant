@@ -15,6 +15,13 @@ let lastState = null;
 
 export function render(state) {
   lastState = state;
+
+  // si el plat que portàvem ja no hi és (l'ha agafat el personal, per exemple)
+  if (ui.drag) {
+    const plates = ui.drag.kind === 'ready' ? state.readyPlates : state.dirtyPlates;
+    if (plates[ui.drag.index] !== ui.drag.dish) ui.drag = null;
+  }
+
   renderScene(state, ui);
   renderHud(state);
   renderShop(state);
@@ -98,12 +105,32 @@ export function wire(handlers) {
   wireScene($('scene'), handlers);
 }
 
-// Tota la partida es juga a l'escena: clicar la graella per triar el plat,
-// arrossegar els plats llestos als clients i els bruts a la pica.
+// Tota la partida es juga a l'escena: clicar la graella per triar el plat, i
+// portar els plats o bé arrossegant-los, o bé clicant-los i clicant on van.
 function wireScene(scene, { onStartCooking, onDeliver, onWash }) {
+  const CLICK_SLOP = 3;   // píxels d'escena: menys que això, és un clic
+
+  // Deixar el plat que portem: al client, a la pica, o enlloc (torna al seu lloc).
+  const release = (e) => {
+    const held = ui.drag;
+    ui.drag = null;
+    scene.classList.remove('dragging');
+
+    const target = dropTargetAt(e.clientX, e.clientY, held.kind);
+    if (!target) render(lastState);
+    else if (target.type === 'sink') onWash(held.index);
+    else onDeliver(target.index, held.dish);
+  };
+
   scene.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;              // només botó principal / toc
     e.preventDefault();
+
+    if (ui.drag && ui.drag.mode === 'click') {   // ja en portàvem un: aquest clic el deixa
+      release(e);
+      return;
+    }
+
     const hit = hotspotAt(e.clientX, e.clientY);
 
     if (!hit || hit.type === 'close') {
@@ -122,7 +149,8 @@ function wireScene(scene, { onStartCooking, onDeliver, onWash }) {
       return;
     }
     if (hit.type === 'plate') {
-      ui.drag = { kind: hit.kind, dish: hit.dish, index: hit.index, ...toScene(e.clientX, e.clientY) };
+      const point = toScene(e.clientX, e.clientY);
+      ui.drag = { kind: hit.kind, dish: hit.dish, index: hit.index, mode: 'drag', from: point, ...point };
       scene.setPointerCapture(e.pointerId);
       scene.classList.add('dragging');
       renderScene(lastState, ui);
@@ -141,16 +169,17 @@ function wireScene(scene, { onStartCooking, onDeliver, onWash }) {
   });
 
   const drop = (e) => {
-    if (!ui.drag) return;
-    const held = ui.drag;
-    ui.drag = null;
-    scene.classList.remove('dragging');
-    scene.classList.toggle('grabbable', hotspotAt(e.clientX, e.clientY) !== null);
+    if (!ui.drag || ui.drag.mode !== 'drag') return;
 
-    const target = dropTargetAt(e.clientX, e.clientY, held.kind);
-    if (!target) render(lastState);                    // el plat es queda on era
-    else if (target.type === 'sink') onWash(held.index);
-    else onDeliver(target.index, held.dish);
+    // Si el punter gairebé no s'ha mogut, era un clic: el plat queda agafat i
+    // el deixarem al pròxim clic.
+    const moved = Math.hypot(ui.drag.x - ui.drag.from.x, ui.drag.y - ui.drag.from.y);
+    if (moved < CLICK_SLOP) {
+      ui.drag.mode = 'click';
+      renderScene(lastState, ui);
+      return;
+    }
+    release(e);
   };
 
   scene.addEventListener('pointerup', drop);

@@ -41,8 +41,9 @@ als nivells 2 i 3.
   ràpid** (4 nivells de +25% de feina, 200 € ×1,8).
 - **Personal:** rentaplats (150 €), cuiner (300 €) i cambrer (300 €), fins a 2 de cada, cost
   ×1,8 per contractació. Cadascú fa la seva feina sol cada pocs segons.
-- **Servir:** arrossegues el plat llest del taulell fins a un grup que el vulgui (els grups que
-  el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
+- **Servir:** portes el plat llest del taulell fins a un grup que el vulgui, **arrossegant-lo**
+  o bé **clicant-lo i clicant on va** (els grups que el volen es remarquen mentre el portes).
+  Igual per als plats bruts cap a la pica. Quan el grup té tot el
   menjar **paga a l'instant**, es queda **3 s** menjant i llavors se'n va caminant per la
   porta; el seu lloc de la cua no s'allibera fins que marxa.
 - **Plats bruts:** en marxar, cada comensal deixa el seu plat brut al taulell (màxim 8). Els
