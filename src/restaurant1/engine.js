@@ -17,7 +17,7 @@ export function pickDish(rng) {
   return DISH_IDS[Math.floor(rng() * DISH_IDS.length)];
 }
 
-export function spawnGroup(rng) {
+export function spawnGroup(rng, id) {
   const size = pickPartySize(rng);
   const diners = [];
   for (let i = 0; i < size; i++) {
@@ -25,7 +25,8 @@ export function spawnGroup(rng) {
     // no en sap res: qui la interpreta és l'escena.
     diners.push({ dish: pickDish(rng), status: 'waiting', look: rng() });
   }
-  return { diners };
+  // leaveTimer: null mentre esperen; segons que els queden un cop tenen el menjar.
+  return { id, diners, leaveTimer: null };
 }
 
 // --- Càlculs derivats ---
@@ -101,10 +102,12 @@ export function deliverPlate(state, queueIndex, dish) {
   const newGroup = { ...g, diners };
   const readyPlates = state.readyPlates.filter((_, i) => i !== plateIdx);
 
-  // sense temps de menjar: quan el grup té tot el menjar, paga a l'instant i marxa
+  // quan el grup té tot el menjar paga a l'instant, però encara es queda una
+  // estona a la botiga (CONFIG.leaveTime) abans de marxar per la porta
   if (groupAllServed(newGroup)) {
     const amount = newGroup.diners.reduce((s, d) => s + DISHES[d.dish].price, 0);
-    const queue = state.queue.filter((_, i) => i !== queueIndex);
+    const eating = { ...newGroup, leaveTimer: CONFIG.leaveTime };
+    const queue = state.queue.map((gg, i) => (i === queueIndex ? eating : gg));
     return { ...state, queue, readyPlates, money: state.money + amount };
   }
   const queue = state.queue.map((gg, i) => (i === queueIndex ? newGroup : gg));
@@ -121,11 +124,16 @@ export function tick(state, dt, rng) {
     readyPlates: [...state.readyPlates],
   };
 
+  // els que ja tenen el menjar se'n van quan se'ls acaba el temps
+  next.queue = next.queue
+    .map(g => (g.leaveTimer === null ? g : { ...g, leaveTimer: g.leaveTimer - dt }))
+    .filter(g => g.leaveTimer === null || g.leaveTimer > 0);
+
   // arribada: nou grup a la cua si no és plena
   next.spawnTimer -= dt;
   if (next.spawnTimer <= 0) {
     if (next.queue.length < CONFIG.queueMax) {
-      const g = spawnGroup(rng);
+      const g = spawnGroup(rng, next.nextGroupId++);
       next.queue.push(g);
       events.push({ type: 'arrival', size: g.diners.length });
     }

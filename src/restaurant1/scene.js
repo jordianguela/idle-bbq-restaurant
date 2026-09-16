@@ -23,6 +23,8 @@ const PASS = { x: 200, y: 110, dx: 17, max: 8 };   // on es deixen els plats lle
 const SLOT_X = [58, 176, 294];  // centre de cada grup de la cua
 const SLOT_FEET = 182;          // terra on trepitgen els clients
 const DINER_DX = 13;
+const DOOR = { x: 176, y: 254 };  // l'entrada, a baix de tot (fora de plans)
+const WALK_SPEED = 64;            // píxels per segon caminant
 
 const EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif';
 
@@ -31,6 +33,12 @@ let ctx = null;
 let sheets = null;
 let chars = null;
 let current = { state: null, drag: null };
+
+// On és cada grup ara mateix (id del grup → posició i pas de caminar), i els
+// que ja han marxat de la cua i encara estan sortint per la porta.
+const walkers = new Map();
+let leaving = [];
+let lastFrame = 0;
 
 // --- Càrrega ---
 
@@ -122,6 +130,10 @@ function bubble(x, bottom, emoji, tone) {
 // --- Dibuix de l'escena ---
 
 function draw(state, drag, t) {
+  const dt = Math.min((t - lastFrame) / 1000, 0.1);   // el primer fotograma i les pestanyes de fons no donen salts
+  lastFrame = t;
+  walk(state, dt);
+
   ctx.clearRect(0, 0, SCENE_W, SCENE_H);
   drawRoom();
   drawKitchen(state, t);
@@ -226,28 +238,90 @@ function drawHallProps() {
   sprite('plantSmall', 334, 136);
 }
 
-function drawQueue(state, drag, t) {
+// --- Els clients van a peu ---
+// Entren per la porta, van fins al seu lloc del taulell i, quan marxen, tornen
+// a sortir per la porta. Aquí només hi ha el moviment: quan un grup marxa de
+// debò ho decideix la lògica del joc.
+
+function walk(state, dt) {
+  const present = new Set();
+
   state.queue.forEach((group, gi) => {
-    const cx = SLOT_X[gi];
-    if (cx === undefined) return;
+    present.add(group.id);
+    let w = walkers.get(group.id);
+    if (!w) {
+      w = { x: DOOR.x, y: DOOR.y, dir: DIR.up, step: 0, moving: true };
+      walkers.set(group.id, w);
+    }
+    w.diners = group.diners;   // per si marxa i l'hem de seguir dibuixant
+    step(w, SLOT_X[gi] ?? SLOT_X[SLOT_X.length - 1], SLOT_FEET, dt);
+  });
+
+  for (const [id, w] of walkers) {
+    if (!present.has(id)) {
+      leaving.push(w);
+      walkers.delete(id);
+    }
+  }
+
+  leaving = leaving.filter(w => !step(w, DOOR.x, DOOR.y, dt));
+}
+
+// Acosta el grup al seu destí. Retorna cert quan ja hi és.
+function step(w, tx, ty, dt) {
+  const dx = tx - w.x;
+  const dy = ty - w.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.5) {
+    w.x = tx;
+    w.y = ty;
+    w.moving = false;
+    return true;
+  }
+  const d = Math.min(dist, WALK_SPEED * dt);
+  w.x += (dx / dist) * d;
+  w.y += (dy / dist) * d;
+  w.step += d;
+  w.moving = true;
+  w.dir = Math.abs(dy) > Math.abs(dx) ? (dy < 0 ? DIR.up : DIR.down) : DIR.side;
+  return false;
+}
+
+function drawQueue(state, drag, t) {
+  for (const w of leaving) drawGroupAt(w, w.diners, null, t);
+
+  state.queue.forEach((group, gi) => {
+    const w = walkers.get(group.id);
+    if (!w) return;
     const wanted = drag && group.diners.some(
       d => d.status === 'waiting' && d.dish === drag.dish
     );
-    if (wanted) highlightGroup(group, cx, t, overGroup(drag, group, cx));
+    if (wanted) highlightGroup(group, w, t, overGroup(drag, group, w));
+    drawGroupAt(w, group.diners, gi, t);
+  });
+}
 
-    group.diners.forEach((diner, di) => {
-      const x = cx + dinerOffset(di, group.diners.length);
-      const served = diner.status === 'served';
-      const dir = served ? DIR.down : (di === 0 ? DIR.up : DIR.side);
-      const frame = served ? FRAME_IDLE : idleFrame(t, gi * 3 + di);
-      character(lookOf(diner, gi * 2 + di), x, SLOT_FEET, dir, frame);
+function drawGroupAt(w, diners, gi, t) {
+  diners.forEach((diner, di) => {
+    const x = w.x + dinerOffset(di, diners.length);
+    const served = diner.status === 'served';
+    const dir = w.moving ? w.dir : (served ? DIR.down : (di === 0 ? DIR.up : DIR.side));
+    const frame = w.moving
+      ? walkFrame(w.step + di * 5)
+      : (served ? FRAME_IDLE : idleFrame(t, (gi ?? 0) * 3 + di));
+    character(lookOf(diner, di), x, w.y, dir, frame);
+    if (!w.moving) {
       bubble(
-        x, SLOT_FEET - CHAR_H - 3,
+        x, w.y - CHAR_H - 3,
         served ? '😋' : DISHES[diner.dish].emoji,
         served ? 'rgba(190, 236, 180, 0.95)' : 'rgba(246, 240, 230, 0.95)'
       );
-    });
+    }
   });
+}
+
+function walkFrame(distance) {
+  return [0, FRAME_IDLE, 2, FRAME_IDLE][Math.floor(distance / 6) % 4];
 }
 
 // La llavor del client (0..1) tria quin dels 40 sprites li toca.
@@ -265,19 +339,19 @@ function dinerOffset(i, total) {
   return total === 1 ? 0 : (i - (total - 1) / 2) * (DINER_DX * 2);
 }
 
-function groupBox(group, cx) {
+function groupBox(group, w) {
   const half = (group.diners.length * DINER_DX) + 8;
-  return { x: cx - half, y: SLOT_FEET - CHAR_H - 24, w: half * 2, h: CHAR_H + 28 };
+  return { x: w.x - half, y: w.y - CHAR_H - 24, w: half * 2, h: CHAR_H + 28 };
 }
 
-function overGroup(drag, group, cx) {
-  const b = groupBox(group, cx);
+function overGroup(drag, group, w) {
+  const b = groupBox(group, w);
   return drag.x >= b.x && drag.x <= b.x + b.w && drag.y >= b.y && drag.y <= b.y + b.h;
 }
 
 // Marca els clients que volen el plat que portes; si hi ets a sobre, s'omple.
-function highlightGroup(group, cx, t, over) {
-  const b = groupBox(group, cx);
+function highlightGroup(group, w, t, over) {
+  const b = groupBox(group, w);
   const pulse = 0.75 + 0.25 * Math.sin(t / 220);
   ctx.save();
   ctx.fillStyle = over ? 'rgba(216, 176, 43, 0.22)' : 'rgba(216, 176, 43, 0.08)';
@@ -319,12 +393,12 @@ export function plateAt(clientX, clientY) {
 export function groupAt(clientX, clientY) {
   if (!canvas || !current.state) return null;
   const { x, y } = toScene(clientX, clientY);
-  if (y < SLOT_FEET - CHAR_H - 24 || y > SLOT_FEET + 6) return null;
-  for (let i = 0; i < current.state.queue.length; i++) {
-    const cx = SLOT_X[i];
-    if (cx === undefined) continue;
-    const half = (current.state.queue[i].diners.length * DINER_DX) + 8;
-    if (x >= cx - half && x <= cx + half) return i;
+  const queue = current.state.queue;
+  for (let i = 0; i < queue.length; i++) {
+    const w = walkers.get(queue[i].id);
+    if (!w) continue;
+    const b = groupBox(queue[i], w);
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return i;
   }
   return null;
 }

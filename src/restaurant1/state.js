@@ -5,7 +5,8 @@ export function createInitialState(now) {
     level: 1,
     money: 0,
     spawnTimer: CONFIG.spawnInterval,
-    queue: [],        // grups esperant; cada grup: { diners: [{ dish, status }] }
+    queue: [],        // grups a la botiga; cada grup: { id, diners, leaveTimer }
+    nextGroupId: 1,   // identitat de cada grup (l'escena hi enganxa l'animació)
     bbqs: [null],     // cada posició: null (lliure) o { dish, remaining, total }
     readyPlates: [],  // plats cuinats pendents de donar
     lastSeen: now,

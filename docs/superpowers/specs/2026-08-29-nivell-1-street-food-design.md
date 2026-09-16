@@ -28,20 +28,24 @@ als nivells 2 i 3.
 - **Objectiu:** 10.000 € per desbloquejar el nivell 2. Barra d'objectiu sempre visible; en
   arribar-hi surt un cartell "Nivell 2 (properament)" i es pot seguir jugant.
 - **Plats:** 🍔 Hamburguesa (12 € / 2 s) i 🌭 Frankfurt (8 € / 1,5 s).
-- **Clients:** grups d'1 o 2 que fan **cua** (màxim 3). Sense paciència.
+- **Clients:** grups d'1 o 2 que **entren per la porta caminant** i fan **cua** (màxim 3).
+  Sense paciència.
 - **Cuina:** de 1 a **3 BBQ** (comences amb 1, en compres més fins a 3; cost 150 € ×2). Tot
   **manual**: cliques la BBQ i tries el plat correcte (equivocar-te perd temps). Barra de
   progrés.
 - **Servir:** arrossegues el plat llest del taulell fins a un grup que el vulgui (els grups que
   el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
-  menjar, **paga a l'instant** (sense temps de menjar) i marxa; la cua avança.
-- **Sense** taules, temps de menjar, cambrers, cuiners.
+  menjar **paga a l'instant**, es queda **3 s** menjant i llavors se'n va caminant per la
+  porta; el seu lloc de la cua no s'allibera fins que marxa.
+- **Sense** taules, cambrers, cuiners.
 
 ## Model / accions (pures)
 
-Estat: `{ level, money, spawnTimer, queue:[{diners:[{dish,status}]}], bbqs:[null|{dish,remaining,total}], readyPlates:[], lastSeen }`.
-Accions: `startCooking(bbqIndex, dish)`, `deliverPlate(groupIndex, dish)` (cobra i treu el grup
-si queda tot servit), `buyBbq()` (topat a `maxBbqs`), `tick(dt, rng)` (arribades + cocció).
+Estat: `{ level, money, spawnTimer, nextGroupId, queue:[{id,diners:[{dish,status,look}],leaveTimer}], bbqs:[null|{dish,remaining,total}], readyPlates:[], lastSeen }`.
+Accions: `startCooking(bbqIndex, dish)`, `deliverPlate(groupIndex, dish)` (cobra i arrenca el
+`leaveTimer` si queda tot servit), `buyBbq()` (topat a `maxBbqs`), `tick(dt, rng)` (arribades,
+cocció i marxa dels grups que han acabat).
+L'`id` i el `look` són identitat, no lògica: deixen que l'escena sàpiga qui és qui per animar-ho.
 `goalReached(state)` = `money >= CONFIG.goal`.
 
 ## Persistència
