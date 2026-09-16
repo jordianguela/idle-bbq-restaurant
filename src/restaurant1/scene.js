@@ -5,7 +5,8 @@ import {
   SHEETS, SPRITES, TILE, WALL_VARIANTS,
   CHAR_W, CHAR_H, CHAR_COUNT, FRAME_IDLE, DIR, charSrc,
 } from './sprites.js';
-import { DISHES, DISH_IDS } from './definitions.js';
+import { DISHES, DISH_IDS, CONFIG, STAFF_IDS } from './definitions.js';
+import { queueCapacity } from './engine.js';
 
 export const SCENE_W = 352;
 export const SCENE_H = 240;
@@ -19,6 +20,12 @@ const KITCHEN_BLOCK = { x: 6, y: 14 };
 const FRIDGE = { x: 320, y: 30 };
 const GRILL = { x0: 170, y: 52, dx: 46 };
 const COOK = { x: 156, feet: 114, look: 11 };
+// On es posa cadascú quan el contractes (i quina cara té)
+const STAFF_SPOTS = {
+  washer: { look: 12, dir: DIR.side, spots: [{ x: 60, feet: 114 }, { x: 78, feet: 100 }] },
+  cook:   { look: 10, dir: DIR.up,   spots: [{ x: 196, feet: 116 }, { x: 242, feet: 116 }] },
+  waiter: { look: 17, dir: DIR.down, spots: [{ x: 302, feet: 116 }, { x: 328, feet: 116 }] },
+};
 const PASS = { x: 200, y: 110, dx: 17, max: 8 };   // on es deixen els plats llestos
 const SINK = { x: 4, y: 72 };                      // la pica: on es renten els bruts
 const DIRTY = { x: 20, y: 121, dx: 17 };           // plats bruts, damunt del taulell
@@ -183,6 +190,40 @@ function drawKitchen(state, t) {
   // el cuiner treballa: fotograma que va canviant
   const frame = Math.floor(t / 260) % 3;
   character(COOK.look, COOK.x, COOK.feet, DIR.up, frame);
+
+  drawStaff(state, t);
+  drawCapacityWarning(state);
+}
+
+// El personal contractat es veu a la seva zona de feina.
+function drawStaff(state, t) {
+  STAFF_IDS.forEach((role, r) => {
+    const { look, dir, spots } = STAFF_SPOTS[role];
+    for (let i = 0; i < state.staff[role]; i++) {
+      const spot = spots[i % spots.length];
+      character(look, spot.x, spot.feet, dir, idleFrame(t, r * 5 + i));
+    }
+  });
+}
+
+// Amb massa plats bruts, al local hi caben menys clients.
+function drawCapacityWarning(state) {
+  const lost = CONFIG.queueMax - queueCapacity(state);
+  if (lost <= 0) return;
+  const text = lost >= CONFIG.queueMax ? 'ple de plats bruts!' : `−${lost} client${lost > 1 ? 's' : ''}`;
+
+  ctx.save();
+  ctx.font = '8px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width + 12;
+  ctx.fillStyle = 'rgba(168, 48, 36, 0.92)';
+  ctx.beginPath();
+  ctx.roundRect(DIRTY.x + 44, 100, w, 13, 4);
+  ctx.fill();
+  ctx.fillStyle = '#ffe9e2';
+  ctx.textAlign = 'left';
+  ctx.fillText(text, DIRTY.x + 50, 107);
+  ctx.restore();
 }
 
 // --- Menú de la graella: què hi posem, hamburguesa o frankfurt ---

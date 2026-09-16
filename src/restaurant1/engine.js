@@ -1,4 +1,4 @@
-import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
+import { DISHES, DISH_IDS, CONFIG, STAFF, STAFF_IDS } from './definitions.js';
 import { upgradeCost } from '../economy.js';
 
 // --- Aleatorietat (rng injectat: funció que retorna [0, 1)) ---
@@ -78,6 +78,71 @@ export function buyBbq(state) {
   const cost = bbqCost(state);
   if (state.money < cost) return state;
   return { ...state, money: state.money - cost, bbqs: [...state.bbqs, null] };
+}
+
+// Els plats bruts ocupen el local: cada tants, un client menys hi cap.
+export function queueCapacity(state) {
+  const lost = Math.floor(state.dirtyPlates.length / CONFIG.dirtyPerSlot);
+  return Math.max(0, CONFIG.queueMax - lost);
+}
+
+// --- Personal ---
+
+export function hireCost(state, role) {
+  return upgradeCost(STAFF[role].baseCost, STAFF[role].growth, state.staff[role]);
+}
+
+export function canHire(state, role) {
+  return state.staff[role] < STAFF[role].max;
+}
+
+export function hire(state, role) {
+  if (!canHire(state, role)) return state;
+  const cost = hireCost(state, role);
+  if (state.money < cost) return state;
+  return {
+    ...state,
+    money: state.money - cost,
+    staff: { ...state.staff, [role]: state.staff[role] + 1 },
+  };
+}
+
+// Què fa cadascú quan li toca. Retorna l'estat nou, o null si no hi ha feina.
+const STAFF_WORK = {
+  washer: (state) => (state.dirtyPlates.length ? washPlate(state, 0) : null),
+
+  cook: (state) => {
+    const free = state.bbqs.indexOf(null);
+    if (free === -1) return null;
+    const dish = DISH_IDS.find(id => cookNeeded(state, id) > 0);
+    return dish ? startCooking(state, free, dish) : null;
+  },
+
+  waiter: (state) => {
+    for (const dish of state.readyPlates) {
+      const group = state.queue.findIndex(g => groupWantsDish(g, dish));
+      if (group !== -1) return deliverPlate(state, group, dish);
+    }
+    return null;
+  },
+};
+
+function runStaff(state, dt) {
+  let next = state;
+  const timers = { ...state.staffTimers };
+
+  for (const role of STAFF_IDS) {
+    const hired = next.staff[role];
+    if (!hired) continue;
+    timers[role] -= dt * hired;            // més personal, més feina feta
+    while (timers[role] < 0) {
+      timers[role] += STAFF[role].interval;
+      const done = STAFF_WORK[role](next);
+      if (!done) break;                    // res a fer: no s'acumula feina
+      next = done;
+    }
+  }
+  return { ...next, staffTimers: timers };
 }
 
 // Foc més fort: multiplica la velocitat de cocció de totes les graelles.
@@ -163,10 +228,10 @@ export function tick(state, dt, rng) {
       return false;
     });
 
-  // arribada: nou grup a la cua si no és plena
+  // arribada: nou grup si hi caben (els plats bruts ocupen lloc)
   next.spawnTimer -= dt;
   if (next.spawnTimer <= 0) {
-    if (next.queue.length < CONFIG.queueMax) {
+    if (next.queue.length < queueCapacity(next)) {
       const g = spawnGroup(rng, next.nextGroupId++);
       next.queue.push(g);
       events.push({ type: 'arrival', size: g.diners.length });
@@ -189,5 +254,5 @@ export function tick(state, dt, rng) {
     }
   }
 
-  return { state: next, events };
+  return { state: runStaff(next, dt), events };
 }

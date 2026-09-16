@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { createInitialState } from '../src/restaurant1/state.js';
 import {
   tick, deliverPlate, washPlate, startCooking, buyFire, fireCost, canBuyFire,
+  queueCapacity, hire, hireCost, canHire,
 } from '../src/restaurant1/engine.js';
-import { DISHES } from '../src/restaurant1/definitions.js';
+import { DISHES, STAFF } from '../src/restaurant1/definitions.js';
 import { CONFIG } from '../src/restaurant1/definitions.js';
 
 // rng determinista: sempre el primer plat i el grup més petit
@@ -86,4 +87,49 @@ test('comprar foc: costa diners, puja de nivell i té topall', () => {
   for (let i = 0; i < CONFIG.fire.maxLevel + 2; i++) maxed = buyFire(maxed);
   assert.equal(maxed.fireLevel, CONFIG.fire.maxLevel);
   assert.equal(canBuyFire(maxed), false);
+});
+
+test('els plats bruts treuen lloc a la cua', () => {
+  const s = createInitialState(0);
+  assert.equal(queueCapacity(s), CONFIG.queueMax);
+  assert.equal(queueCapacity({ ...s, dirtyPlates: Array(CONFIG.dirtyPerSlot).fill('x') }), CONFIG.queueMax - 1);
+  assert.equal(queueCapacity({ ...s, dirtyPlates: Array(CONFIG.maxDirty).fill('x') }), 0);
+});
+
+test('amb el taulell ple de bruts no entren clients', () => {
+  const brut = { ...createInitialState(0), spawnTimer: 0, dirtyPlates: Array(CONFIG.maxDirty).fill('hamburguesa') };
+  const { state, events } = tick(brut, 0.1, rng);
+  assert.equal(state.queue.length, 0);
+  assert.equal(events.length, 0);
+});
+
+test('el rentaplats renta sol', () => {
+  const s = {
+    ...createInitialState(0),
+    dirtyPlates: ['hamburguesa', 'frankfurt'],
+    staff: { washer: 1, cook: 0, waiter: 0 },
+  };
+  const { state } = tick(s, STAFF.washer.interval, rng);
+  assert.equal(state.dirtyPlates.length, 1, 'n\'ha rentat un');
+});
+
+test('el cuiner posa plats a coure sol', () => {
+  const s = { ...stateWithGroup(), staff: { washer: 0, cook: 1, waiter: 0 } };
+  const { state } = tick(s, STAFF.cook.interval, rng);
+  assert.ok(state.bbqs[0], 'la graella està en marxa');
+});
+
+test('contractar: cobra, puja i té topall', () => {
+  const rich = { ...createInitialState(0), money: 100000 };
+  const cost = hireCost(rich, 'cook');
+  const after = hire(rich, 'cook');
+  assert.equal(after.staff.cook, 1);
+  assert.equal(after.money, rich.money - cost);
+
+  assert.equal(hire({ ...createInitialState(0), money: 0 }, 'cook').staff.cook, 0, 'sense diners no contracta');
+
+  let full = rich;
+  for (let i = 0; i < STAFF.cook.max + 2; i++) full = hire(full, 'cook');
+  assert.equal(full.staff.cook, STAFF.cook.max);
+  assert.equal(canHire(full, 'cook'), false);
 });

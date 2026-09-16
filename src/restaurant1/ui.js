@@ -1,6 +1,7 @@
-import { CONFIG } from './definitions.js';
+import { CONFIG, STAFF, STAFF_IDS } from './definitions.js';
 import {
-  bbqCost, canBuyBbq, fireCost, canBuyFire, fireFactor, goalReached,
+  bbqCost, canBuyBbq, fireCost, canBuyFire, fireFactor,
+  hireCost, canHire, goalReached,
 } from './engine.js';
 import { renderScene, hotspotAt, dropTargetAt, toScene } from './scene.js';
 
@@ -50,14 +51,23 @@ function renderShop(state) {
       cost: canBuyFire(state) ? fireCost(state) : null,
       money: state.money,
     }),
+    ...STAFF_IDS.map(role => offer({
+      action: 'hire',
+      role,
+      icon: STAFF[role].icon,
+      name: STAFF[role].name,
+      note: `${STAFF[role].job} · ${state.staff[role]} de ${STAFF[role].max}`,
+      cost: canHire(state, role) ? hireCost(state, role) : null,
+      money: state.money,
+    })),
   ].join('');
 }
 
 // cost null = ja està al màxim
-function offer({ action, icon, name, note, cost, money }) {
+function offer({ action, role, icon, name, note, cost, money }) {
   const maxed = cost === null;
   const disabled = maxed || money < cost;
-  return `<button class="shop-btn" data-action="${action}" ${disabled ? 'disabled' : ''}>
+  return `<button class="shop-btn" data-action="${action}"${role ? ` data-role="${role}"` : ''} ${disabled ? 'disabled' : ''}>
     <span class="s-icon">${icon}</span>
     <span class="s-text"><b>${name}</b><small>${note}</small></span>
     <span class="s-cost">${maxed ? 'màxim ✅' : `${cost} €`}</span>
@@ -67,9 +77,11 @@ function offer({ action, icon, name, note, cost, money }) {
 export function wire(handlers) {
   $('build').addEventListener('click', () => $('shop').classList.toggle('hidden'));
   $('shop').addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'buy-bbq') handlers.onBuyBbq();
-    else if (action === 'buy-fire') handlers.onBuyFire();
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'buy-bbq') handlers.onBuyBbq();
+    else if (el.dataset.action === 'buy-fire') handlers.onBuyFire();
+    else if (el.dataset.action === 'hire') handlers.onHire(el.dataset.role);
   });
   wireScene($('scene'), handlers);
 }
