@@ -63,4 +63,4 @@ prototip queda al marge (clau diferent).
 - Nivells 2 i 3 (reaprofitant `restaurant2/`): taules, temps de menjar, i possiblement el
   personal com a millora d'aquell nivell.
 - Transició real en obrir el nivell 2 (carregar el restaurant 2, arrossegar el capital…).
-- Més plats; format de números grans; clicar les BBQ a l'escena per cuinar.
+- Més plats; format de números grans; penalització si el taulell de bruts s'omple.
