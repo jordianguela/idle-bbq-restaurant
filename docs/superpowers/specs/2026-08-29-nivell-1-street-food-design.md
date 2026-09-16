@@ -32,7 +32,8 @@ als nivells 2 i 3.
 - **Cuina:** de 1 a **3 BBQ** (comences amb 1, en compres més fins a 3; cost 150 € ×2). Tot
   **manual**: cliques la BBQ i tries el plat correcte (equivocar-te perd temps). Barra de
   progrés.
-- **Servir:** agafes un plat llest i el dones a un grup que el vulgui. Quan el grup té tot el
+- **Servir:** arrossegues el plat llest del taulell fins a un grup que el vulgui (els grups que
+  el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
   menjar, **paga a l'instant** (sense temps de menjar) i marxa; la cua avança.
 - **Sense** taules, temps de menjar, cambrers, cuiners.
 
@@ -53,4 +54,4 @@ prototip queda al marge (clau diferent).
 - Nivells 2 i 3 (reaprofitant `restaurant2/`): taules, temps de menjar, i possiblement el
   personal com a millora d'aquell nivell.
 - Transició real en obrir el nivell 2 (carregar el restaurant 2, arrossegar el capital…).
-- Drag-and-drop; més plats; format de números grans.
+- Més plats; format de números grans; clicar les BBQ a l'escena per cuinar.

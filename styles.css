@@ -26,8 +26,9 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color
 .kitchen { padding: 1rem; }
 h2 { margin-top: 0; font-size: 1rem; opacity: 0.85; }
 
-#scene { display: block; width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #120d0a; }
-body.picking #scene { cursor: pointer; }
+#scene { display: block; width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #120d0a; touch-action: none; }
+#scene.grabbable { cursor: grab; }
+#scene.dragging { cursor: grabbing; }
 
 .credits { padding: 0.4rem 1.2rem 1.4rem; font-size: 0.72rem; opacity: 0.45; text-align: center; }
 
@@ -35,8 +36,5 @@ body.picking #scene { cursor: pointer; }
 .bbqs { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }
 .bbq-slot { padding: 0.6rem; border-radius: 10px; background: #33271f; }
 
-button.dish-btn, button.plate-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.2rem; padding: 0.35rem 0.6rem; margin: 0.1rem; }
-.dish-btn { background: #3a2c22; color: #f4ece4; }
+button.dish-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.2rem; padding: 0.35rem 0.6rem; margin: 0.1rem; background: #3a2c22; color: #f4ece4; }
 .dish-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.plate-btn { background: #d8542b; color: white; }
-.plate-btn.selected { outline: 3px solid #d8b02b; }

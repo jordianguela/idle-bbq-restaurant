@@ -2,23 +2,22 @@ import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
 import {
   cookNeeded, platesCount, bbqCost, canBuyBbq, goalReached,
 } from './engine.js';
-import { renderScene, groupAt } from './scene.js';
+import { renderScene, groupAt, plateAt, toScene } from './scene.js';
 
 const $ = id => document.getElementById(id);
 
-// Estat intern de la UI: quin plat llest hem "agafat" per servir.
-let selectedDish = null;
+// Estat intern de la UI: el plat que s'està arrossegant del taulell cap a un
+// client. { dish, index, x, y } amb la posició dins de l'escena.
+let drag = null;
 let lastState = null;
 
 export function render(state) {
   lastState = state;
-  if (selectedDish && platesCount(state, selectedDish) === 0) selectedDish = null;
 
   $('money').textContent = Math.floor(state.money);
   renderGoal(state);
   renderShop(state);
-  renderScene(state, selectedDish);           // els clients i la cuina es veuen a l'escena
-  document.body.classList.toggle('picking', selectedDish !== null);
+  renderScene(state, drag);           // els clients i la cuina es veuen a l'escena
   renderKitchen(state);
 }
 
@@ -68,40 +67,62 @@ function renderKitchen(state) {
     return `<div class="bbq-slot">BBQ ${i + 1}: <span class="muted">lliure</span> ${buttons}</div>`;
   }).join('');
 
-  const btns = [];
-  for (const id of DISH_IDS) {
-    for (let k = 0; k < platesCount(state, id); k++) {
-      const sel = selectedDish === id && k === 0 ? ' selected' : '';
-      btns.push(`<button class="plate-btn${sel}" data-action="pick-plate" data-dish="${id}">${DISHES[id].emoji}</button>`);
-    }
-  }
-  const hint = selectedDish ? `<div class="muted">Plat agafat: ${DISHES[selectedDish].emoji} — clica els clients que el volen</div>` : '';
-  $('plates').innerHTML = (btns.length ? `Plats llestos: ${btns.join(' ')}` : '') + hint;
+  const ready = DISH_IDS.reduce((n, id) => n + platesCount(state, id), 0);
+  $('plates').innerHTML = ready
+    ? '<div class="muted">Arrossega els plats del taulell fins al client que els vol</div>'
+    : '';
 }
 
 export function wire(handlers) {
   const { onStartCooking, onDeliver, onBuyBbq } = handlers;
+
   document.body.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return; // només botó principal / toc
-
-    // clic sobre un grup de clients dibuixat a l'escena
-    if (e.target.id === 'scene') {
-      const gi = groupAt(e.clientX, e.clientY);
-      if (gi !== null && selectedDish) {
-        onDeliver(gi, selectedDish);
-        selectedDish = null;
-      }
-      return;
-    }
-
     const t = e.target.closest('[data-action]');
     if (!t) return;
     const a = t.dataset.action;
     if (a === 'cook') onStartCooking(Number(t.dataset.bbq), t.dataset.dish);
-    else if (a === 'pick-plate') { selectedDish = selectedDish === t.dataset.dish ? null : t.dataset.dish; render(lastState); }
-    else if (a === 'deliver-group') { onDeliver(Number(t.dataset.group), selectedDish); selectedDish = null; }
     else if (a === 'buy-bbq') onBuyBbq();
   });
+
+  wireDragAndDrop($('scene'), onDeliver);
+}
+
+// Servir = agafar un plat del taulell i deixar-lo anar sobre el client.
+function wireDragAndDrop(scene, onDeliver) {
+  scene.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const picked = plateAt(e.clientX, e.clientY);
+    if (!picked) return;
+    e.preventDefault();
+    drag = { ...picked, ...toScene(e.clientX, e.clientY) };
+    scene.setPointerCapture(e.pointerId);
+    scene.classList.add('dragging');
+    renderScene(lastState, drag);
+  });
+
+  scene.addEventListener('pointermove', (e) => {
+    if (!drag) {
+      scene.classList.toggle('grabbable', plateAt(e.clientX, e.clientY) !== null);
+      return;
+    }
+    Object.assign(drag, toScene(e.clientX, e.clientY));
+    renderScene(lastState, drag);
+  });
+
+  const drop = (e) => {
+    if (!drag) return;
+    const { dish } = drag;
+    const group = groupAt(e.clientX, e.clientY);
+    drag = null;
+    scene.classList.remove('dragging');
+    scene.classList.toggle('grabbable', plateAt(e.clientX, e.clientY) !== null);
+    if (group === null) render(lastState);   // el plat torna al taulell
+    else onDeliver(group, dish);
+  };
+
+  scene.addEventListener('pointerup', drop);
+  scene.addEventListener('pointercancel', drop);
 }
 
 export function notify(events) {

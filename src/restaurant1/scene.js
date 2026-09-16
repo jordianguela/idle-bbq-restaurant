@@ -19,7 +19,7 @@ const KITCHEN_BLOCK = { x: 6, y: 14 };
 const FRIDGE = { x: 320, y: 30 };
 const GRILL = { x0: 170, y: 52, dx: 46 };
 const COOK = { x: 156, feet: 114, look: 11 };
-const PASS = { x: 200, y: 110 };   // on es deixen els plats llestos
+const PASS = { x: 200, y: 110, dx: 17, max: 8 };   // on es deixen els plats llestos
 const SLOT_X = [58, 176, 294];  // centre de cada grup de la cua
 const SLOT_FEET = 182;          // terra on trepitgen els clients
 const DINER_DX = 13;
@@ -30,7 +30,7 @@ let canvas = null;
 let ctx = null;
 let sheets = null;
 let chars = null;
-let current = { state: null, selectedDish: null };
+let current = { state: null, drag: null };
 
 // --- Càrrega ---
 
@@ -61,13 +61,14 @@ export async function initScene(el) {
   requestAnimationFrame(loop);
 }
 
-// La UI ens passa l'estat; el bucle propi redibuixa per animar.
-export function renderScene(state, selectedDish) {
-  current = { state, selectedDish };
+// La UI ens passa l'estat i el plat que s'estigui arrossegant; el bucle propi
+// redibuixa per animar.
+export function renderScene(state, drag = null) {
+  current = { state, drag };
 }
 
 function loop(t) {
-  if (ctx && current.state) draw(current.state, current.selectedDish, t);
+  if (ctx && current.state) draw(current.state, current.drag, t);
   requestAnimationFrame(loop);
 }
 
@@ -120,14 +121,15 @@ function bubble(x, bottom, emoji, tone) {
 
 // --- Dibuix de l'escena ---
 
-function draw(state, selectedDish, t) {
+function draw(state, drag, t) {
   ctx.clearRect(0, 0, SCENE_W, SCENE_H);
   drawRoom();
   drawKitchen(state, t);
   drawHallProps();
   for (let x = 0; x < SCENE_W; x += 32) sprite('counter', x, COUNTER_Y);
-  drawPass(state, selectedDish);
-  drawQueue(state, selectedDish, t);
+  drawPass(state, drag);
+  drawQueue(state, drag, t);
+  if (drag) plate(drag.x, drag.y, drag.dish, true);
 }
 
 function drawRoom() {
@@ -178,28 +180,39 @@ function progressBar(x, y, w, h, pct) {
 }
 
 // Els plats cuinats esperen al taulell, a la vista (banda de cuina).
-function drawPass(state, selectedDish) {
-  const plates = state.readyPlates.slice(0, 8);
-  plates.forEach((dish, i) => {
-    const x = PASS.x + i * 17;
-    const y = PASS.y;
-    ctx.save();
-    ctx.fillStyle = dish === selectedDish ? '#d8b02b' : '#efe7dc';
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(x, y + 3, 8, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.font = `13px ${EMOJI_FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(DISHES[dish].emoji, x, y);
-    ctx.restore();
+// El que s'està arrossegant no es dibuixa aquí: va enganxat al dit/ratolí.
+function drawPass(state, drag) {
+  state.readyPlates.slice(0, PASS.max).forEach((dish, i) => {
+    if (drag && drag.index === i) return;
+    plate(platePos(i).x, PASS.y, dish, false);
   });
+}
+
+function platePos(i) {
+  return { x: PASS.x + i * PASS.dx, y: PASS.y };
+}
+
+function plate(x, y, dish, lifted) {
+  ctx.save();
+  if (lifted) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 10, 8, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = lifted ? '#fff6e0' : '#efe7dc';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 3, 8, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = `13px ${EMOJI_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(DISHES[dish].emoji, x, y);
+  ctx.restore();
 }
 
 function drawHallProps() {
@@ -213,14 +226,14 @@ function drawHallProps() {
   sprite('plantSmall', 334, 136);
 }
 
-function drawQueue(state, selectedDish, t) {
+function drawQueue(state, drag, t) {
   state.queue.forEach((group, gi) => {
     const cx = SLOT_X[gi];
     if (cx === undefined) return;
-    const wanted = selectedDish && group.diners.some(
-      d => d.status === 'waiting' && d.dish === selectedDish
+    const wanted = drag && group.diners.some(
+      d => d.status === 'waiting' && d.dish === drag.dish
     );
-    if (wanted) highlightGroup(group, cx, t);
+    if (wanted) highlightGroup(group, cx, t, overGroup(drag, group, cx));
 
     group.diners.forEach((diner, di) => {
       const x = cx + dinerOffset(di, group.diners.length);
@@ -252,26 +265,60 @@ function dinerOffset(i, total) {
   return total === 1 ? 0 : (i - (total - 1) / 2) * (DINER_DX * 2);
 }
 
-function highlightGroup(group, cx, t) {
+function groupBox(group, cx) {
   const half = (group.diners.length * DINER_DX) + 8;
-  const pulse = 0.55 + 0.45 * Math.sin(t / 220);
+  return { x: cx - half, y: SLOT_FEET - CHAR_H - 24, w: half * 2, h: CHAR_H + 28 };
+}
+
+function overGroup(drag, group, cx) {
+  const b = groupBox(group, cx);
+  return drag.x >= b.x && drag.x <= b.x + b.w && drag.y >= b.y && drag.y <= b.y + b.h;
+}
+
+// Marca els clients que volen el plat que portes; si hi ets a sobre, s'omple.
+function highlightGroup(group, cx, t, over) {
+  const b = groupBox(group, cx);
+  const pulse = 0.75 + 0.25 * Math.sin(t / 220);
   ctx.save();
-  ctx.strokeStyle = `rgba(216, 176, 43, ${pulse.toFixed(3)})`;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([4, 3]);
+  ctx.fillStyle = over ? 'rgba(216, 176, 43, 0.22)' : 'rgba(216, 176, 43, 0.08)';
+  ctx.strokeStyle = `rgba(216, 176, 43, ${over ? 1 : pulse.toFixed(3)})`;
+  ctx.lineWidth = over ? 2.5 : 1.5;
+  if (!over) ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  ctx.roundRect(cx - half, SLOT_FEET - CHAR_H - 24, half * 2, CHAR_H + 28, 6);
+  ctx.roundRect(b.x, b.y, b.w, b.h, 6);
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
 }
 
-// --- Mapa de clics: quin grup hi ha en aquest punt de la pantalla ---
+// --- Mapa de punters: què hi ha en aquest punt de la pantalla ---
+
+// Coordenades del punter dins de l'escena (el canvas es mostra escalat).
+export function toScene(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - r.left) * (SCENE_W / r.width),
+    y: (clientY - r.top) * (SCENE_H / r.height),
+  };
+}
+
+// Quin plat del taulell s'agafa des d'aquest punt.
+export function plateAt(clientX, clientY) {
+  if (!canvas || !current.state) return null;
+  const { x, y } = toScene(clientX, clientY);
+  const plates = current.state.readyPlates.slice(0, PASS.max);
+  for (let i = plates.length - 1; i >= 0; i--) {
+    const p = platePos(i);
+    if (Math.abs(x - p.x) <= 9 && Math.abs(y - p.y) <= 9) {
+      return { dish: plates[i], index: i };
+    }
+  }
+  return null;
+}
 
 export function groupAt(clientX, clientY) {
   if (!canvas || !current.state) return null;
-  const r = canvas.getBoundingClientRect();
-  const x = (clientX - r.left) * (SCENE_W / r.width);
-  const y = (clientY - r.top) * (SCENE_H / r.height);
+  const { x, y } = toScene(clientX, clientY);
   if (y < SLOT_FEET - CHAR_H - 24 || y > SLOT_FEET + 6) return null;
   for (let i = 0; i < current.state.queue.length; i++) {
     const cx = SLOT_X[i];
