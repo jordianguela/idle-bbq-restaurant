@@ -7,33 +7,25 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <h1>🍔 Nivell 1 · Street Food</h1>
-    <p class="money">Diners: <span id="money">0</span> €</p>
-  </header>
-  <div class="goalbar">
-    <div class="goal-label">Objectiu nivell 2: <span id="goal-cur">0</span> / <span id="goal-max">0</span> €</div>
-    <div class="bar big"><span id="goal-fill"></span></div>
-  </div>
-  <div id="banner" class="banner hidden"></div>
-  <div id="notice" class="notice hidden"></div>
-  <div class="shop">
-    <button id="buy-bbq" class="shop-btn" data-action="buy-bbq"></button>
-  </div>
-  <main class="floor">
-    <section class="stage">
-      <canvas id="scene" aria-label="El restaurant: clients a la cua i cuina amb les BBQ"></canvas>
-    </section>
-    <section class="kitchen">
-      <h2>Cuina</h2>
-      <div id="order" class="order">Res per cuinar</div>
-      <div id="bbqs" class="bbqs"></div>
-      <div id="plates" class="plates"></div>
-    </section>
+  <main class="stage">
+    <canvas id="scene" aria-label="El restaurant: clients a la cua, graelles i pica"></canvas>
+
+    <div class="hud">
+      <p class="money"><span id="money">0</span> €</p>
+      <div class="goal">
+        <div class="bar"><span id="goal-fill"></span></div>
+        <p class="goal-label"><span id="goal-cur">0</span> / <span id="goal-max">0</span> € per al nivell 2</p>
+      </div>
+    </div>
+
+    <button id="build" class="build" title="Construir i millorar" aria-label="Construir i millorar">🔨</button>
+    <div id="shop" class="shop hidden">
+      <button id="buy-bbq" class="shop-btn"></button>
+    </div>
+
+    <div id="banner" class="banner hidden"></div>
+    <p class="credits">Local: Bitglow · Cuina: 0-mem0ry · Personatges: Jephed</p>
   </main>
-  <footer class="credits">
-    Sprites del local: Bitglow · Cuina professional: 0-mem0ry · Personatges: Jephed — Game Between The Lines
-  </footer>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

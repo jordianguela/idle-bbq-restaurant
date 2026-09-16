@@ -5,7 +5,7 @@ import {
   SHEETS, SPRITES, TILE, WALL_VARIANTS,
   CHAR_W, CHAR_H, CHAR_COUNT, FRAME_IDLE, DIR, charSrc,
 } from './sprites.js';
-import { DISHES } from './definitions.js';
+import { DISHES, DISH_IDS } from './definitions.js';
 
 export const SCENE_W = 352;
 export const SCENE_H = 240;
@@ -34,7 +34,8 @@ let canvas = null;
 let ctx = null;
 let sheets = null;
 let chars = null;
-let current = { state: null, drag: null };
+// L'estat del joc i el de la interacció (què s'arrossega, quin menú hi ha obert).
+let current = { state: null, ui: {} };
 
 // On és cada grup ara mateix (id del grup → posició i pas de caminar), i els
 // que ja han marxat de la cua i encara estan sortint per la porta.
@@ -71,14 +72,14 @@ export async function initScene(el) {
   requestAnimationFrame(loop);
 }
 
-// La UI ens passa l'estat i el plat que s'estigui arrossegant; el bucle propi
+// La UI ens passa l'estat del joc i el de la interacció; el bucle propi
 // redibuixa per animar.
-export function renderScene(state, drag = null) {
-  current = { state, drag };
+export function renderScene(state, ui = {}) {
+  current = { state, ui };
 }
 
 function loop(t) {
-  if (ctx && current.state) draw(current.state, current.drag, t);
+  if (ctx && current.state) draw(current.state, current.ui, t);
   requestAnimationFrame(loop);
 }
 
@@ -131,11 +132,12 @@ function bubble(x, bottom, emoji, tone) {
 
 // --- Dibuix de l'escena ---
 
-function draw(state, drag, t) {
+function draw(state, ui, t) {
   const dt = Math.min((t - lastFrame) / 1000, 0.1);   // el primer fotograma i les pestanyes de fons no donen salts
   lastFrame = t;
   walk(state, dt);
 
+  const drag = ui.drag ?? null;
   ctx.clearRect(0, 0, SCENE_W, SCENE_H);
   drawRoom();
   drawKitchen(state, t);
@@ -144,6 +146,7 @@ function draw(state, drag, t) {
   drawPass(state, drag);
   drawDirty(state, drag);
   drawQueue(state, drag, t);
+  if (ui.menu !== null && ui.menu !== undefined) drawDishMenu(ui, t);
   if (drag) drawHeldPlate(drag);
 }
 
@@ -180,6 +183,63 @@ function drawKitchen(state, t) {
   // el cuiner treballa: fotograma que va canviant
   const frame = Math.floor(t / 260) % 3;
   character(COOK.look, COOK.x, COOK.feet, DIR.up, frame);
+}
+
+// --- Menú de la graella: què hi posem, hamburguesa o frankfurt ---
+
+function grillBox(i) {
+  const [, , , w, h] = SPRITES.grillOff;
+  return { x: GRILL.x0 + i * GRILL.dx, y: GRILL.y, w, h };
+}
+
+function menuOptions(bbqIndex) {
+  const center = grillBox(bbqIndex).x + SPRITES.grillOff[3] / 2;
+  const width = DISH_IDS.length * 22;
+  return DISH_IDS.map((dish, i) => ({
+    dish,
+    box: { x: center - width / 2 + i * 22 + 1, y: GRILL.y - 28, w: 20, h: 20 },
+  }));
+}
+
+function drawDishMenu(ui, t) {
+  const options = menuOptions(ui.menu);
+  const first = options[0].box;
+  const last = options[options.length - 1].box;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(28, 20, 16, 0.92)';
+  ctx.strokeStyle = 'rgba(216, 176, 43, 0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(first.x - 4, first.y - 4, (last.x + last.w) - first.x + 8, first.h + 8, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();                        // punxa cap a la graella
+  const tip = (first.x + last.x + last.w) / 2;
+  ctx.moveTo(tip - 4, first.y + first.h + 3);
+  ctx.lineTo(tip, first.y + first.h + 8);
+  ctx.lineTo(tip + 4, first.y + first.h + 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  for (const option of options) {
+    const over = ui.pointer && inBox(ui.pointer.x, ui.pointer.y, option.box);
+    ctx.save();
+    ctx.fillStyle = over ? '#d8b02b' : 'rgba(246, 240, 230, 0.92)';
+    ctx.beginPath();
+    ctx.roundRect(option.box.x, option.box.y, option.box.w, option.box.h, 4);
+    ctx.fill();
+    ctx.font = `14px ${EMOJI_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(DISHES[option.dish].emoji, option.box.x + option.box.w / 2, option.box.y + option.box.h / 2 + 1);
+    ctx.restore();
+  }
+}
+
+function inBox(x, y, b) {
+  return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 }
 
 function progressBar(x, y, w, h, pct) {
@@ -404,8 +464,7 @@ function groupBox(group, w) {
 }
 
 function overGroup(drag, group, w) {
-  const b = groupBox(group, w);
-  return drag.x >= b.x && drag.x <= b.x + b.w && drag.y >= b.y && drag.y <= b.y + b.h;
+  return inBox(drag.x, drag.y, groupBox(group, w));
 }
 
 // Marca els clients que volen el plat que portes; si hi ets a sobre, s'omple.
@@ -435,46 +494,57 @@ export function toScene(clientX, clientY) {
   };
 }
 
-// Quin plat s'agafa des d'aquest punt: un de llest del taulell de cuina o un
-// de brut dels que han deixat els clients.
-export function plateAt(clientX, clientY) {
+// Què hi ha per clicar en aquest punt. Retorna:
+//   { type: 'dish', bbq, dish }   opció del menú de la graella
+//   { type: 'close' }             clic fora amb el menú obert
+//   { type: 'plate', kind, dish, index }  un plat per agafar (llest o brut)
+//   { type: 'grill', index }      una graella lliure
+export function hotspotAt(clientX, clientY) {
   if (!canvas || !current.state) return null;
   const { x, y } = toScene(clientX, clientY);
+  const state = current.state;
 
-  const ready = current.state.readyPlates.slice(0, PASS.max);
+  const open = current.ui.menu;
+  if (open !== null && open !== undefined) {
+    for (const option of menuOptions(open)) {
+      if (inBox(x, y, option.box)) return { type: 'dish', bbq: open, dish: option.dish };
+    }
+    return { type: 'close' };
+  }
+
+  const ready = state.readyPlates.slice(0, PASS.max);
   for (let i = ready.length - 1; i >= 0; i--) {
     const p = platePos(i);
     if (Math.abs(x - p.x) <= 9 && Math.abs(y - p.y) <= 9) {
-      return { kind: 'ready', dish: ready[i], index: i };
+      return { type: 'plate', kind: 'ready', dish: ready[i], index: i };
     }
   }
 
-  const dirty = current.state.dirtyPlates;
-  for (let i = dirty.length - 1; i >= 0; i--) {
+  for (let i = state.dirtyPlates.length - 1; i >= 0; i--) {
     const p = dirtyPos(i);
     if (Math.abs(x - p.x) <= 9 && Math.abs(y - p.y) <= 8) {
-      return { kind: 'dirty', dish: dirty[i], index: i };
+      return { type: 'plate', kind: 'dirty', dish: state.dirtyPlates[i], index: i };
     }
+  }
+
+  for (let i = 0; i < state.bbqs.length; i++) {
+    if (state.bbqs[i]) continue;                  // ocupada: ja està coent
+    if (inBox(x, y, grillBox(i))) return { type: 'grill', index: i };
   }
   return null;
 }
 
-// Hi ha la pica, en aquest punt?
-export function sinkAt(clientX, clientY) {
-  if (!canvas) return false;
-  const { x, y } = toScene(clientX, clientY);
-  return overSink(x, y);
-}
-
-export function groupAt(clientX, clientY) {
+// On cauria el que estem arrossegant: el client que vol el plat, o la pica.
+export function dropTargetAt(clientX, clientY, kind) {
   if (!canvas || !current.state) return null;
   const { x, y } = toScene(clientX, clientY);
+
+  if (kind === 'dirty') return overSink(x, y) ? { type: 'sink' } : null;
+
   const queue = current.state.queue;
   for (let i = 0; i < queue.length; i++) {
     const w = walkers.get(queue[i].id);
-    if (!w) continue;
-    const b = groupBox(queue[i], w);
-    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return i;
+    if (w && inBox(x, y, groupBox(queue[i], w))) return { type: 'group', index: i };
   }
   return null;
 }

@@ -2,7 +2,7 @@
 // El codi de taules/personal (restaurants 2 i 3) es conserva a ./restaurant2/.
 import { tick, startCooking, deliverPlate, washPlate, buyBbq } from './restaurant1/engine.js';
 import { load, save } from './restaurant1/save.js';
-import { render, wire, notify } from './restaurant1/ui.js';
+import { render, wire } from './restaurant1/ui.js';
 import { initScene } from './restaurant1/scene.js';
 
 let state;
@@ -27,10 +27,9 @@ function boot() {
     const now = Date.now();
     const dt = (now - last) / 1000;
     last = now;
-    const { state: next, events } = tick(state, dt, Math.random);
+    const { state: next } = tick(state, dt, Math.random);
     state = next;
     render(state);
-    notify(events);
   }, 200);
 
   // desat automàtic

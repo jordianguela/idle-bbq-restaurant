@@ -1,144 +1,106 @@
-import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
-import {
-  cookNeeded, platesCount, bbqCost, canBuyBbq, goalReached,
-} from './engine.js';
-import { renderScene, groupAt, plateAt, sinkAt, toScene } from './scene.js';
+import { CONFIG } from './definitions.js';
+import { bbqCost, canBuyBbq, goalReached } from './engine.js';
+import { renderScene, hotspotAt, dropTargetAt, toScene } from './scene.js';
 
 const $ = id => document.getElementById(id);
 
-// Estat intern de la UI: el plat que s'està arrossegant del taulell cap a un
-// client. { dish, index, x, y } amb la posició dins de l'escena.
-let drag = null;
+// Estat de la interacció (no és estat de joc): què s'arrossega, quin menú de
+// graella hi ha obert i on és el punter, per marcar l'opció de sota.
+const ui = { drag: null, menu: null, pointer: null };
 let lastState = null;
 
 export function render(state) {
   lastState = state;
-
-  $('money').textContent = Math.floor(state.money);
-  renderGoal(state);
+  renderScene(state, ui);
+  renderHud(state);
   renderShop(state);
-  renderScene(state, drag);           // els clients i la cuina es veuen a l'escena
-  renderKitchen(state);
 }
 
-function renderGoal(state) {
-  const pct = Math.max(0, Math.min(100, (state.money / CONFIG.goal) * 100));
-  $('goal-cur').textContent = Math.floor(state.money);
+function renderHud(state) {
+  const money = Math.floor(state.money);
+  $('money').textContent = money;
+  $('goal-cur').textContent = money;
   $('goal-max').textContent = CONFIG.goal;
-  $('goal-fill').style.width = pct + '%';
+  $('goal-fill').style.width = Math.max(0, Math.min(100, (state.money / CONFIG.goal) * 100)) + '%';
 
   const banner = $('banner');
-  if (goalReached(state)) {
-    banner.textContent = '🎉 Objectiu assolit! Has desbloquejat el Nivell 2 (properament). Pots seguir jugant.';
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
+  banner.textContent = '🎉 Objectiu assolit! Nivell 2 properament — pots seguir jugant.';
+  banner.classList.toggle('hidden', !goalReached(state));
 }
 
 function renderShop(state) {
   const el = $('buy-bbq');
   if (!canBuyBbq(state)) {
-    el.innerHTML = `BBQ al màxim (${CONFIG.maxBbqs}) ✅`;
+    el.innerHTML = `Graelles al màxim (${CONFIG.maxBbqs}) ✅`;
     el.disabled = true;
     return;
   }
   const cost = bbqCost(state);
-  el.innerHTML = `➕ Compra BBQ <b>${cost} €</b>`;
+  el.innerHTML = `🔥 Una altra graella <b>${cost} €</b>`;
   el.disabled = state.money < cost;
 }
 
-function renderKitchen(state) {
-  const parts = DISH_IDS
-    .map(id => ({ id, n: cookNeeded(state, id) }))
-    .filter(x => x.n > 0)
-    .map(x => `${x.n}×${DISHES[x.id].emoji}`);
-  $('order').textContent = parts.length ? `A cuinar: ${parts.join('  ')}` : 'Res per cuinar';
-
-  const canCook = state.queue.length > 0;
-  $('bbqs').innerHTML = state.bbqs.map((b, i) => {
-    if (b) {
-      const pct = Math.max(0, Math.min(100, ((b.total - b.remaining) / b.total) * 100));
-      return `<div class="bbq-slot">BBQ ${i + 1}: ${DISHES[b.dish].emoji} ${DISHES[b.dish].name}<div class="bar"><span style="width:${pct}%"></span></div></div>`;
-    }
-    const buttons = DISH_IDS.map(id =>
-      `<button class="dish-btn" data-action="cook" data-bbq="${i}" data-dish="${id}" ${canCook ? '' : 'disabled'}>${DISHES[id].emoji}</button>`
-    ).join('');
-    return `<div class="bbq-slot">BBQ ${i + 1}: <span class="muted">lliure</span> ${buttons}</div>`;
-  }).join('');
-
-  const hints = [];
-  if (DISH_IDS.some(id => platesCount(state, id) > 0)) {
-    hints.push('Arrossega els plats del taulell fins al client que els vol');
-  }
-  if (state.dirtyPlates.length) {
-    hints.push(`Plats bruts: ${state.dirtyPlates.length} — porta'ls a la pica arrossegant-los`);
-  }
-  $('plates').innerHTML = hints.map(h => `<div class="muted">${h}</div>`).join('');
-}
-
 export function wire(handlers) {
-  const { onStartCooking, onDeliver, onBuyBbq } = handlers;
-
-  document.body.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return; // només botó principal / toc
-    const t = e.target.closest('[data-action]');
-    if (!t) return;
-    const a = t.dataset.action;
-    if (a === 'cook') onStartCooking(Number(t.dataset.bbq), t.dataset.dish);
-    else if (a === 'buy-bbq') onBuyBbq();
-  });
-
-  wireDragAndDrop($('scene'), handlers);
+  $('build').addEventListener('click', () => $('shop').classList.toggle('hidden'));
+  $('buy-bbq').addEventListener('click', () => handlers.onBuyBbq());
+  wireScene($('scene'), handlers);
 }
 
-// Arrossegar: un plat llest fins al client que el vol, o un plat brut fins a la pica.
-function wireDragAndDrop(scene, { onDeliver, onWash }) {
+// Tota la partida es juga a l'escena: clicar la graella per triar el plat,
+// arrossegar els plats llestos als clients i els bruts a la pica.
+function wireScene(scene, { onStartCooking, onDeliver, onWash }) {
   scene.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    const picked = plateAt(e.clientX, e.clientY);
-    if (!picked) return;
+    if (e.button !== 0) return;              // només botó principal / toc
     e.preventDefault();
-    drag = { ...picked, ...toScene(e.clientX, e.clientY) };
-    scene.setPointerCapture(e.pointerId);
-    scene.classList.add('dragging');
-    renderScene(lastState, drag);
+    const hit = hotspotAt(e.clientX, e.clientY);
+
+    if (!hit || hit.type === 'close') {
+      ui.menu = null;
+      render(lastState);
+      return;
+    }
+    if (hit.type === 'dish') {
+      ui.menu = null;
+      onStartCooking(hit.bbq, hit.dish);
+      return;
+    }
+    if (hit.type === 'grill') {
+      if (lastState.queue.length) ui.menu = hit.index;   // sense clients no hi ha res a coure
+      render(lastState);
+      return;
+    }
+    if (hit.type === 'plate') {
+      ui.drag = { kind: hit.kind, dish: hit.dish, index: hit.index, ...toScene(e.clientX, e.clientY) };
+      scene.setPointerCapture(e.pointerId);
+      scene.classList.add('dragging');
+      renderScene(lastState, ui);
+    }
   });
 
   scene.addEventListener('pointermove', (e) => {
-    if (!drag) {
-      scene.classList.toggle('grabbable', plateAt(e.clientX, e.clientY) !== null);
-      return;
+    const point = toScene(e.clientX, e.clientY);
+    if (ui.drag) {
+      Object.assign(ui.drag, point);
+    } else {
+      ui.pointer = point;
+      scene.classList.toggle('grabbable', hotspotAt(e.clientX, e.clientY) !== null);
     }
-    Object.assign(drag, toScene(e.clientX, e.clientY));
-    renderScene(lastState, drag);
+    renderScene(lastState, ui);
   });
 
   const drop = (e) => {
-    if (!drag) return;
-    const held = drag;
-    drag = null;
+    if (!ui.drag) return;
+    const held = ui.drag;
+    ui.drag = null;
     scene.classList.remove('dragging');
-    scene.classList.toggle('grabbable', plateAt(e.clientX, e.clientY) !== null);
+    scene.classList.toggle('grabbable', hotspotAt(e.clientX, e.clientY) !== null);
 
-    if (held.kind === 'dirty') {
-      if (sinkAt(e.clientX, e.clientY)) onWash(held.index);
-      else render(lastState);               // el plat brut es queda al taulell
-      return;
-    }
-    const group = groupAt(e.clientX, e.clientY);
-    if (group === null) render(lastState);  // el plat torna al taulell
-    else onDeliver(group, held.dish);
+    const target = dropTargetAt(e.clientX, e.clientY, held.kind);
+    if (!target) render(lastState);                    // el plat es queda on era
+    else if (target.type === 'sink') onWash(held.index);
+    else onDeliver(target.index, held.dish);
   };
 
   scene.addEventListener('pointerup', drop);
   scene.addEventListener('pointercancel', drop);
-}
-
-export function notify(events) {
-  if (!events.length) return;
-  const el = $('notice');
-  const msgs = events.map(ev => (ev.type === 'arrival' ? `🔔 Ha arribat un grup de ${ev.size}!` : ''));
-  el.textContent = msgs.join('  ');
-  el.classList.remove('hidden');
 }

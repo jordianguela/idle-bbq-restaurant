@@ -1,40 +1,122 @@
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
-body { font-family: system-ui, sans-serif; margin: 0; background: #1b1512; color: #f4ece4; }
-.topbar { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1.2rem; background: #2a201a; }
-.topbar h1 { font-size: 1.2rem; margin: 0; }
-.money { font-weight: 700; font-size: 1.1rem; margin: 0; }
-.muted { opacity: 0.55; }
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  padding: 12px;
+  display: grid;
+  place-items: center;
+  background: #120d0a;
+  color: #f4ece4;
+}
 
-.goalbar { padding: 0.7rem 1.2rem 0; }
-.goal-label { font-size: 0.9rem; margin-bottom: 0.3rem; opacity: 0.9; }
-.bar { height: 10px; border-radius: 6px; background: #4a3a2e; overflow: hidden; }
-.bar > span { display: block; height: 100%; background: #d8542b; }
-.bar.big { height: 16px; border-radius: 8px; }
-.bar.big > span { background: linear-gradient(90deg, #d8542b, #d8b02b); transition: width 0.2s linear; }
-
-.banner { margin: 0.7rem 1.2rem 0; padding: 0.7rem 0.9rem; border-radius: 10px; background: #2f5a3a; font-weight: 600; }
-.notice { margin: 0.6rem 1.2rem 0; padding: 0.6rem 0.9rem; border-radius: 10px; background: #3b3320; }
-.hidden { display: none; }
-
-.shop { display: flex; gap: 0.6rem; padding: 0.8rem 1.2rem 0; flex-wrap: wrap; }
-.shop-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; padding: 0.6rem 0.9rem; background: #2f6f3a; color: #eaf4e4; font-weight: 600; }
-.shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.floor { display: grid; gap: 1rem; padding: 1.2rem; max-width: 1100px; margin: 0 auto; }
-.stage, .kitchen { background: #241b16; border-radius: 14px; padding: 0.7rem; }
-.kitchen { padding: 1rem; }
-h2 { margin-top: 0; font-size: 1rem; opacity: 0.85; }
-
-#scene { display: block; width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; background: #120d0a; touch-action: none; }
+/* Tot el joc és l'escena; la resta són capes a sobre. */
+.stage { position: relative; width: 100%; max-width: 1056px; }
+#scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  image-rendering: pixelated;
+  background: #120d0a;
+  touch-action: none;
+}
 #scene.grabbable { cursor: grab; }
 #scene.dragging { cursor: grabbing; }
 
-.credits { padding: 0.4rem 1.2rem 1.4rem; font-size: 0.72rem; opacity: 0.45; text-align: center; }
+.hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(18, 13, 10, 0.72);
+  pointer-events: none;
+}
+.money { margin: 0; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.goal { min-width: 140px; }
+.goal-label { margin: 0.2rem 0 0; font-size: 0.68rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.bar { height: 7px; border-radius: 4px; background: #3a2c22; overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #d8542b, #d8b02b); transition: width 0.2s linear; }
 
-.order { padding: 0.6rem; border-radius: 10px; background: #33271f; margin-bottom: 0.8rem; }
-.bbqs { display: grid; gap: 0.5rem; margin-bottom: 0.8rem; }
-.bbq-slot { padding: 0.6rem; border-radius: 10px; background: #33271f; }
+.build {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid rgba(216, 176, 43, 0.5);
+  border-radius: 10px;
+  background: rgba(18, 13, 10, 0.82);
+}
+.build:hover { background: rgba(58, 44, 34, 0.9); }
 
-button.dish-btn { cursor: pointer; border: none; border-radius: 10px; font: inherit; font-size: 1.2rem; padding: 0.35rem 0.6rem; margin: 0.1rem; background: #3a2c22; color: #f4ece4; }
-.dish-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.shop {
+  position: absolute;
+  top: 62px;
+  right: 12px;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  background: rgba(18, 13, 10, 0.92);
+  border: 1px solid rgba(216, 176, 43, 0.35);
+}
+.shop-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.7rem;
+  background: #2f6f3a;
+  color: #eaf4e4;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.banner {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(47, 90, 58, 0.92);
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.credits {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  margin: 0;
+  font-size: 0.6rem;
+  opacity: 0.55;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.hidden { display: none; }
+
+:focus-visible { outline: 3px solid #d8b02b; outline-offset: 2px; }
+
+@media (max-width: 520px) {
+  .hud { top: 8px; left: 8px; gap: 0.5rem; padding: 0.3rem 0.5rem; }
+  .goal { min-width: 92px; }
+  .money { font-size: 0.9rem; }
+  .build { top: 8px; right: 8px; width: 36px; height: 36px; font-size: 1.1rem; }
+  .shop { top: 50px; right: 8px; }
+  .credits { display: none; }
+}
