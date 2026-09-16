@@ -19,4 +19,6 @@ export const CONFIG = {
   maxDirty: 8,          // plats bruts que caben al taulell
   maxBbqs: 3,           // pots tenir fins a 3 BBQ al nivell 1
   bbq: { baseCost: 150, growth: 2 },
+  // Foc més fort: cada nivell cou un 25% més ràpid (×2 al nivell 4)
+  fire: { baseCost: 120, growth: 1.8, maxLevel: 4, step: 0.25 },
 };

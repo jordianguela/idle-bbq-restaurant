@@ -31,8 +31,10 @@ als nivells 2 i 3.
 - **Clients:** grups d'1 o 2 que **entren per la porta caminant** i fan **cua** (màxim 3).
   Sense paciència.
 - **Cuina:** de 1 a **3 BBQ** (comences amb 1, en compres més fins a 3; cost 150 € ×2). Tot
-  **manual**: cliques la BBQ i tries el plat correcte (equivocar-te perd temps). Barra de
-  progrés.
+  **manual**: cliques la BBQ a l'escena, tries el plat en un globus (equivocar-te perd temps)
+  i surt la barra de progrés.
+- **Millores:** **foc més fort**, 4 nivells de +25% de velocitat de cocció (cost 120 € ×1,8).
+  S'aplica a totes les graelles alhora.
 - **Servir:** arrossegues el plat llest del taulell fins a un grup que el vulgui (els grups que
   el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
   menjar **paga a l'instant**, es queda **3 s** menjant i llavors se'n va caminant per la
@@ -46,14 +48,14 @@ als nivells 2 i 3.
 
 Estat: `{ level, money, spawnTimer, nextGroupId, queue:[{id,diners:[{dish,status,look}],leaveTimer}], bbqs:[null|{dish,remaining,total}], readyPlates:[], dirtyPlates:[], lastSeen }`.
 Accions: `startCooking(bbqIndex, dish)`, `deliverPlate(groupIndex, dish)` (cobra i arrenca el
-`leaveTimer` si queda tot servit), `washPlate(index)`, `buyBbq()` (topat a `maxBbqs`),
+`leaveTimer` si queda tot servit), `washPlate(index)`, `buyBbq()` (topat a `maxBbqs`), `buyFire()` (topat a `fire.maxLevel`),
 `tick(dt, rng)` (arribades, cocció, i marxa dels grups que han acabat deixant els plats bruts).
 L'`id` i el `look` són identitat, no lògica: deixen que l'escena sàpiga qui és qui per animar-ho.
 `goalReached(state)` = `money >= CONFIG.goal`.
 
 ## Persistència
 
-Clau nova `idle-bbq-lvl1`: es desa diners + nombre de BBQ (topat a 3). El progrés antic del
+Clau `idle-bbq-lvl1`: es desen diners, nombre de BBQ (topat a 3) i nivell de foc. El progrés antic del
 prototip queda al marge (clau diferent).
 
 ## Fora d'abast (properes)

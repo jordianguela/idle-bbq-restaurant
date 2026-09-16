@@ -10,6 +10,7 @@ export function save(state, storage, now) {
     storage.setItem(KEY, JSON.stringify({
       money: state.money,
       bbqs: state.bbqs.length,
+      fireLevel: state.fireLevel,
       lastSeen: now,
     }));
   } catch { /* partida no desada */ }
@@ -24,6 +25,7 @@ export function load(storage, now) {
     state.money = saved.money ?? 0;
     const nb = Math.min(CONFIG.maxBbqs, Math.max(1, saved.bbqs ?? 1));
     state.bbqs = Array(nb).fill(null);
+    state.fireLevel = Math.min(CONFIG.fire.maxLevel, Math.max(0, saved.fireLevel ?? 0));
   }
   return state;
 }

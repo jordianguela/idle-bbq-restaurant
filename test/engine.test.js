@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/restaurant1/state.js';
-import { tick, deliverPlate, washPlate } from '../src/restaurant1/engine.js';
+import {
+  tick, deliverPlate, washPlate, startCooking, buyFire, fireCost, canBuyFire,
+} from '../src/restaurant1/engine.js';
+import { DISHES } from '../src/restaurant1/definitions.js';
 import { CONFIG } from '../src/restaurant1/definitions.js';
 
 // rng determinista: sempre el primer plat i el grup més petit
@@ -54,4 +57,33 @@ test('el taulell de bruts té un límit', () => {
   const served = deliverPlate({ ...full, queue: s.queue, readyPlates: [dish] }, 0, dish);
   const { state: gone } = tick(served, CONFIG.leaveTime + 0.1, rng);
   assert.equal(gone.dirtyPlates.length, CONFIG.maxDirty);
+});
+
+test('el foc més fort cou més de pressa', () => {
+  const s = stateWithGroup();
+  const dish = s.queue[0].diners[0].dish;
+
+  const normal = startCooking(s, 0, dish);
+  assert.equal(normal.bbqs[0].total, DISHES[dish].cookTime);
+
+  const strong = startCooking({ ...s, fireLevel: 2 }, 0, dish);
+  const factor = 1 + CONFIG.fire.step * 2;
+  assert.equal(strong.bbqs[0].total, DISHES[dish].cookTime / factor);
+  assert.ok(strong.bbqs[0].total < normal.bbqs[0].total);
+});
+
+test('comprar foc: costa diners, puja de nivell i té topall', () => {
+  const rich = { ...createInitialState(0), money: 100000 };
+  const cost = fireCost(rich);
+  const after = buyFire(rich);
+  assert.equal(after.fireLevel, 1);
+  assert.equal(after.money, rich.money - cost);
+
+  const poor = { ...createInitialState(0), money: 0 };
+  assert.equal(buyFire(poor).fireLevel, 0, 'sense diners no puja');
+
+  let maxed = rich;
+  for (let i = 0; i < CONFIG.fire.maxLevel + 2; i++) maxed = buyFire(maxed);
+  assert.equal(maxed.fireLevel, CONFIG.fire.maxLevel);
+  assert.equal(canBuyFire(maxed), false);
 });

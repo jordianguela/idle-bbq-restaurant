@@ -80,12 +80,32 @@ export function buyBbq(state) {
   return { ...state, money: state.money - cost, bbqs: [...state.bbqs, null] };
 }
 
+// Foc més fort: multiplica la velocitat de cocció de totes les graelles.
+export function fireFactor(state) {
+  return 1 + CONFIG.fire.step * (state.fireLevel ?? 0);
+}
+
+export function fireCost(state) {
+  return upgradeCost(CONFIG.fire.baseCost, CONFIG.fire.growth, state.fireLevel ?? 0);
+}
+
+export function canBuyFire(state) {
+  return (state.fireLevel ?? 0) < CONFIG.fire.maxLevel;
+}
+
+export function buyFire(state) {
+  if (!canBuyFire(state)) return state;
+  const cost = fireCost(state);
+  if (state.money < cost) return state;
+  return { ...state, money: state.money - cost, fireLevel: (state.fireLevel ?? 0) + 1 };
+}
+
 // --- Accions manuals (pures) ---
 
 export function startCooking(state, bbqIndex, dish) {
   if (state.bbqs[bbqIndex] !== null || state.bbqs[bbqIndex] === undefined) return state;
   if (state.queue.length === 0) return state;
-  const total = DISHES[dish].cookTime;
+  const total = DISHES[dish].cookTime / fireFactor(state);
   const bbqs = state.bbqs.map((b, i) => (i === bbqIndex ? { dish, remaining: total, total } : b));
   return { ...state, bbqs };
 }

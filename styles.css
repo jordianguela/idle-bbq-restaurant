@@ -70,18 +70,27 @@ body {
   border: 1px solid rgba(216, 176, 43, 0.35);
 }
 .shop-btn {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
   cursor: pointer;
   border: none;
   border-radius: 8px;
   font: inherit;
-  font-size: 0.85rem;
-  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
   background: #2f6f3a;
   color: #eaf4e4;
-  font-weight: 600;
-  white-space: nowrap;
 }
-.shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.shop-btn:hover:not(:disabled) { background: #3b8749; }
+.shop-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.s-icon { font-size: 1.1rem; }
+.s-text { display: grid; }
+.s-text small { font-size: 0.66rem; opacity: 0.75; }
+.s-cost { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .banner {
   position: absolute;

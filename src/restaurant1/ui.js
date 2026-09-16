@@ -1,5 +1,7 @@
 import { CONFIG } from './definitions.js';
-import { bbqCost, canBuyBbq, goalReached } from './engine.js';
+import {
+  bbqCost, canBuyBbq, fireCost, canBuyFire, fireFactor, goalReached,
+} from './engine.js';
 import { renderScene, hotspotAt, dropTargetAt, toScene } from './scene.js';
 
 const $ = id => document.getElementById(id);
@@ -29,20 +31,46 @@ function renderHud(state) {
 }
 
 function renderShop(state) {
-  const el = $('buy-bbq');
-  if (!canBuyBbq(state)) {
-    el.innerHTML = `Graelles al màxim (${CONFIG.maxBbqs}) ✅`;
-    el.disabled = true;
-    return;
-  }
-  const cost = bbqCost(state);
-  el.innerHTML = `🔥 Una altra graella <b>${cost} €</b>`;
-  el.disabled = state.money < cost;
+  $('shop').innerHTML = [
+    offer({
+      action: 'buy-bbq',
+      icon: '🍳',
+      name: 'Una altra graella',
+      note: `${state.bbqs.length} de ${CONFIG.maxBbqs}`,
+      cost: canBuyBbq(state) ? bbqCost(state) : null,
+      money: state.money,
+    }),
+    offer({
+      action: 'buy-fire',
+      icon: '🔥',
+      name: 'Foc més fort',
+      note: canBuyFire(state)
+        ? `cuina ×${fireFactor(state).toFixed(2)} → ×${(fireFactor(state) + CONFIG.fire.step).toFixed(2)}`
+        : `cuina ×${fireFactor(state).toFixed(2)}`,
+      cost: canBuyFire(state) ? fireCost(state) : null,
+      money: state.money,
+    }),
+  ].join('');
+}
+
+// cost null = ja està al màxim
+function offer({ action, icon, name, note, cost, money }) {
+  const maxed = cost === null;
+  const disabled = maxed || money < cost;
+  return `<button class="shop-btn" data-action="${action}" ${disabled ? 'disabled' : ''}>
+    <span class="s-icon">${icon}</span>
+    <span class="s-text"><b>${name}</b><small>${note}</small></span>
+    <span class="s-cost">${maxed ? 'màxim ✅' : `${cost} €`}</span>
+  </button>`;
 }
 
 export function wire(handlers) {
   $('build').addEventListener('click', () => $('shop').classList.toggle('hidden'));
-  $('buy-bbq').addEventListener('click', () => handlers.onBuyBbq());
+  $('shop').addEventListener('click', (e) => {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'buy-bbq') handlers.onBuyBbq();
+    else if (action === 'buy-fire') handlers.onBuyFire();
+  });
   wireScene($('scene'), handlers);
 }
 
