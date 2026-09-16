@@ -20,6 +20,8 @@ const FRIDGE = { x: 320, y: 30 };
 const GRILL = { x0: 170, y: 52, dx: 46 };
 const COOK = { x: 156, feet: 114, look: 11 };
 const PASS = { x: 200, y: 110, dx: 17, max: 8 };   // on es deixen els plats llestos
+const SINK = { x: 4, y: 72 };                      // la pica: on es renten els bruts
+const DIRTY = { x: 20, y: 121, dx: 17 };           // plats bruts, damunt del taulell
 const SLOT_X = [58, 176, 294];  // centre de cada grup de la cua
 const SLOT_FEET = 182;          // terra on trepitgen els clients
 const DINER_DX = 13;
@@ -140,8 +142,9 @@ function draw(state, drag, t) {
   drawHallProps();
   for (let x = 0; x < SCENE_W; x += 32) sprite('counter', x, COUNTER_Y);
   drawPass(state, drag);
+  drawDirty(state, drag);
   drawQueue(state, drag, t);
-  if (drag) plate(drag.x, drag.y, drag.dish, true);
+  if (drag) drawHeldPlate(drag);
 }
 
 function drawRoom() {
@@ -162,6 +165,7 @@ function drawRoom() {
 function drawKitchen(state, t) {
   sprite('kitchenBlock', KITCHEN_BLOCK.x, KITCHEN_BLOCK.y);
   sprite('fridge', FRIDGE.x, FRIDGE.y);
+  sprite('sink', SINK.x, SINK.y);
 
   state.bbqs.forEach((bbq, i) => {
     const x = GRILL.x0 + i * GRILL.dx;
@@ -194,8 +198,9 @@ function progressBar(x, y, w, h, pct) {
 // Els plats cuinats esperen al taulell, a la vista (banda de cuina).
 // El que s'està arrossegant no es dibuixa aquí: va enganxat al dit/ratolí.
 function drawPass(state, drag) {
+  const held = drag && drag.kind === 'ready' ? drag.index : -1;
   state.readyPlates.slice(0, PASS.max).forEach((dish, i) => {
-    if (drag && drag.index === i) return;
+    if (i === held) return;
     plate(platePos(i).x, PASS.y, dish, false);
   });
 }
@@ -225,6 +230,60 @@ function plate(x, y, dish, lifted) {
   ctx.textBaseline = 'middle';
   ctx.fillText(DISHES[dish].emoji, x, y);
   ctx.restore();
+}
+
+// Els clients deixen els plats bruts al taulell; van a la pica arrossegant-los.
+function drawDirty(state, drag) {
+  const held = drag && drag.kind === 'dirty' ? drag.index : -1;
+  state.dirtyPlates.forEach((dish, i) => {
+    if (i === held) return;
+    const p = dirtyPos(i);
+    dirtySprite(p.x, p.y, i);
+  });
+  if (drag && drag.kind === 'dirty') markSink(drag);
+}
+
+function dirtyPos(i) {
+  return { x: DIRTY.x + i * DIRTY.dx, y: DIRTY.y };
+}
+
+function dirtySprite(x, y, i) {
+  const [, , , w, h] = SPRITES[i % 2 ? 'dirtyPlateB' : 'dirtyPlate'];
+  sprite(i % 2 ? 'dirtyPlateB' : 'dirtyPlate', Math.round(x - w / 2), Math.round(y - h / 2));
+}
+
+// La pica s'encén quan hi portes un plat brut a sobre.
+function markSink(drag) {
+  const over = overSink(drag.x, drag.y);
+  ctx.save();
+  ctx.strokeStyle = over ? 'rgba(120, 200, 255, 1)' : 'rgba(120, 200, 255, 0.5)';
+  ctx.fillStyle = over ? 'rgba(120, 200, 255, 0.25)' : 'rgba(120, 200, 255, 0.08)';
+  ctx.lineWidth = over ? 2.5 : 1.5;
+  if (!over) ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.roundRect(SINK.x, SINK.y, SPRITES.sink[3], SPRITES.sink[4], 5);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function overSink(x, y) {
+  return x >= SINK.x && x <= SINK.x + SPRITES.sink[3]
+    && y >= SINK.y && y <= SINK.y + SPRITES.sink[4];
+}
+
+function drawHeldPlate(drag) {
+  if (drag.kind === 'dirty') {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(drag.x, drag.y + 8, 7, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    dirtySprite(drag.x, drag.y, drag.index);
+    return;
+  }
+  plate(drag.x, drag.y, drag.dish, true);
 }
 
 function drawHallProps() {
@@ -293,7 +352,7 @@ function drawQueue(state, drag, t) {
   state.queue.forEach((group, gi) => {
     const w = walkers.get(group.id);
     if (!w) return;
-    const wanted = drag && group.diners.some(
+    const wanted = drag && drag.kind === 'ready' && group.diners.some(
       d => d.status === 'waiting' && d.dish === drag.dish
     );
     if (wanted) highlightGroup(group, w, t, overGroup(drag, group, w));
@@ -376,18 +435,35 @@ export function toScene(clientX, clientY) {
   };
 }
 
-// Quin plat del taulell s'agafa des d'aquest punt.
+// Quin plat s'agafa des d'aquest punt: un de llest del taulell de cuina o un
+// de brut dels que han deixat els clients.
 export function plateAt(clientX, clientY) {
   if (!canvas || !current.state) return null;
   const { x, y } = toScene(clientX, clientY);
-  const plates = current.state.readyPlates.slice(0, PASS.max);
-  for (let i = plates.length - 1; i >= 0; i--) {
+
+  const ready = current.state.readyPlates.slice(0, PASS.max);
+  for (let i = ready.length - 1; i >= 0; i--) {
     const p = platePos(i);
     if (Math.abs(x - p.x) <= 9 && Math.abs(y - p.y) <= 9) {
-      return { dish: plates[i], index: i };
+      return { kind: 'ready', dish: ready[i], index: i };
+    }
+  }
+
+  const dirty = current.state.dirtyPlates;
+  for (let i = dirty.length - 1; i >= 0; i--) {
+    const p = dirtyPos(i);
+    if (Math.abs(x - p.x) <= 9 && Math.abs(y - p.y) <= 8) {
+      return { kind: 'dirty', dish: dirty[i], index: i };
     }
   }
   return null;
+}
+
+// Hi ha la pica, en aquest punt?
+export function sinkAt(clientX, clientY) {
+  if (!canvas) return false;
+  const { x, y } = toScene(clientX, clientY);
+  return overSink(x, y);
 }
 
 export function groupAt(clientX, clientY) {

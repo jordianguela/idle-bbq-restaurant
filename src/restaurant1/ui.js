@@ -2,7 +2,7 @@ import { DISHES, DISH_IDS, CONFIG } from './definitions.js';
 import {
   cookNeeded, platesCount, bbqCost, canBuyBbq, goalReached,
 } from './engine.js';
-import { renderScene, groupAt, plateAt, toScene } from './scene.js';
+import { renderScene, groupAt, plateAt, sinkAt, toScene } from './scene.js';
 
 const $ = id => document.getElementById(id);
 
@@ -67,10 +67,14 @@ function renderKitchen(state) {
     return `<div class="bbq-slot">BBQ ${i + 1}: <span class="muted">lliure</span> ${buttons}</div>`;
   }).join('');
 
-  const ready = DISH_IDS.reduce((n, id) => n + platesCount(state, id), 0);
-  $('plates').innerHTML = ready
-    ? '<div class="muted">Arrossega els plats del taulell fins al client que els vol</div>'
-    : '';
+  const hints = [];
+  if (DISH_IDS.some(id => platesCount(state, id) > 0)) {
+    hints.push('Arrossega els plats del taulell fins al client que els vol');
+  }
+  if (state.dirtyPlates.length) {
+    hints.push(`Plats bruts: ${state.dirtyPlates.length} — porta'ls a la pica arrossegant-los`);
+  }
+  $('plates').innerHTML = hints.map(h => `<div class="muted">${h}</div>`).join('');
 }
 
 export function wire(handlers) {
@@ -85,11 +89,11 @@ export function wire(handlers) {
     else if (a === 'buy-bbq') onBuyBbq();
   });
 
-  wireDragAndDrop($('scene'), onDeliver);
+  wireDragAndDrop($('scene'), handlers);
 }
 
-// Servir = agafar un plat del taulell i deixar-lo anar sobre el client.
-function wireDragAndDrop(scene, onDeliver) {
+// Arrossegar: un plat llest fins al client que el vol, o un plat brut fins a la pica.
+function wireDragAndDrop(scene, { onDeliver, onWash }) {
   scene.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     const picked = plateAt(e.clientX, e.clientY);
@@ -112,13 +116,19 @@ function wireDragAndDrop(scene, onDeliver) {
 
   const drop = (e) => {
     if (!drag) return;
-    const { dish } = drag;
-    const group = groupAt(e.clientX, e.clientY);
+    const held = drag;
     drag = null;
     scene.classList.remove('dragging');
     scene.classList.toggle('grabbable', plateAt(e.clientX, e.clientY) !== null);
-    if (group === null) render(lastState);   // el plat torna al taulell
-    else onDeliver(group, dish);
+
+    if (held.kind === 'dirty') {
+      if (sinkAt(e.clientX, e.clientY)) onWash(held.index);
+      else render(lastState);               // el plat brut es queda al taulell
+      return;
+    }
+    const group = groupAt(e.clientX, e.clientY);
+    if (group === null) render(lastState);  // el plat torna al taulell
+    else onDeliver(group, held.dish);
   };
 
   scene.addEventListener('pointerup', drop);

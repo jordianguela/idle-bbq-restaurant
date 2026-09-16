@@ -37,14 +37,17 @@ als nivells 2 i 3.
   el volen es remarquen mentre l'arrossegues). Quan el grup té tot el
   menjar **paga a l'instant**, es queda **3 s** menjant i llavors se'n va caminant per la
   porta; el seu lloc de la cua no s'allibera fins que marxa.
+- **Plats bruts:** en marxar, cada comensal deixa el seu plat brut al taulell (màxim 8). Els
+  renten arrossegant-los fins a la **pica** de la cuina. De moment no penalitzen: són la base
+  per a una pressió futura (si el taulell s'omple, no entren clients).
 - **Sense** taules, cambrers, cuiners.
 
 ## Model / accions (pures)
 
-Estat: `{ level, money, spawnTimer, nextGroupId, queue:[{id,diners:[{dish,status,look}],leaveTimer}], bbqs:[null|{dish,remaining,total}], readyPlates:[], lastSeen }`.
+Estat: `{ level, money, spawnTimer, nextGroupId, queue:[{id,diners:[{dish,status,look}],leaveTimer}], bbqs:[null|{dish,remaining,total}], readyPlates:[], dirtyPlates:[], lastSeen }`.
 Accions: `startCooking(bbqIndex, dish)`, `deliverPlate(groupIndex, dish)` (cobra i arrenca el
-`leaveTimer` si queda tot servit), `buyBbq()` (topat a `maxBbqs`), `tick(dt, rng)` (arribades,
-cocció i marxa dels grups que han acabat).
+`leaveTimer` si queda tot servit), `washPlate(index)`, `buyBbq()` (topat a `maxBbqs`),
+`tick(dt, rng)` (arribades, cocció, i marxa dels grups que han acabat deixant els plats bruts).
 L'`id` i el `look` són identitat, no lògica: deixen que l'escena sàpiga qui és qui per animar-ho.
 `goalReached(state)` = `money >= CONFIG.goal`.
 

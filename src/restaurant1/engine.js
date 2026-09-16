@@ -114,6 +114,12 @@ export function deliverPlate(state, queueIndex, dish) {
   return { ...state, queue, readyPlates };
 }
 
+// Portar un plat brut a la pica: rentat i fora.
+export function washPlate(state, index) {
+  if (index < 0 || index >= state.dirtyPlates.length) return state;
+  return { ...state, dirtyPlates: state.dirtyPlates.filter((_, i) => i !== index) };
+}
+
 // tick avança el temps del joc. Retorna sempre { state, events }.
 export function tick(state, dt, rng) {
   const events = [];
@@ -124,10 +130,18 @@ export function tick(state, dt, rng) {
     readyPlates: [...state.readyPlates],
   };
 
-  // els que ja tenen el menjar se'n van quan se'ls acaba el temps
+  // els que ja tenen el menjar se'n van quan se'ls acaba el temps, i deixen
+  // els plats bruts al taulell
+  next.dirtyPlates = [...state.dirtyPlates];
   next.queue = next.queue
     .map(g => (g.leaveTimer === null ? g : { ...g, leaveTimer: g.leaveTimer - dt }))
-    .filter(g => g.leaveTimer === null || g.leaveTimer > 0);
+    .filter(g => {
+      if (g.leaveTimer === null || g.leaveTimer > 0) return true;
+      for (const d of g.diners) {
+        if (next.dirtyPlates.length < CONFIG.maxDirty) next.dirtyPlates.push(d.dish);
+      }
+      return false;
+    });
 
   // arribada: nou grup a la cua si no és plena
   next.spawnTimer -= dt;

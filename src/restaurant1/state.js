@@ -9,6 +9,7 @@ export function createInitialState(now) {
     nextGroupId: 1,   // identitat de cada grup (l'escena hi enganxa l'animació)
     bbqs: [null],     // cada posició: null (lliure) o { dish, remaining, total }
     readyPlates: [],  // plats cuinats pendents de donar
+    dirtyPlates: [],  // plats bruts que han deixat els clients (a rentar a la pica)
     lastSeen: now,
   };
 }

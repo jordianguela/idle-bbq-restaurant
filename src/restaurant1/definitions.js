@@ -16,6 +16,7 @@ export const CONFIG = {
     { size: 2, weight: 1 },
   ],
   leaveTime: 3,         // segons que es queden amb el menjar abans de marxar
+  maxDirty: 8,          // plats bruts que caben al taulell
   maxBbqs: 3,           // pots tenir fins a 3 BBQ al nivell 1
   bbq: { baseCost: 150, growth: 2 },
 };

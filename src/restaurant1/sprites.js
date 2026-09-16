@@ -8,6 +8,7 @@ export const SHEETS = {
   living: 'assets/restaurant/livingroom_LRK.png',
   decor: 'assets/restaurant/decorations_LRK.png',
   doors: 'assets/restaurant/doorswindowsstairs_LRK.png',
+  pro: 'assets/kitchen-pro/professional_kitchen.png',
 };
 
 export const TILE = 16;
@@ -27,6 +28,9 @@ export const SPRITES = {
   table:        ['living',  224, 208,  32, 32],
   chair:        ['living',  272, 208,  16, 32],
   rug:          ['living',   16, 336,  64, 32],
+  sink:         ['pro',       1, 115,  47, 45],   // pica de cuina professional
+  dirtyPlate:   ['pro',     177,   2,  14, 13],   // plat amb restes
+  dirtyPlateB:  ['pro',     177,  18,  14, 13],
   plantTall:    ['decor',    80,  80,  16, 31],
   plantSmall:   ['decor',    16,  81,  15, 30],
   picture:      ['decor',   112,  96,  32, 16],
